@@ -110,7 +110,7 @@ You need to create a config file, which we'll call `x64.debug`.
 Use `gn`, which will open an editor:
 
 ```console
-gn args out/x64.debug
+$ gn args out/x64.debug
 ```
 
 Enter the following values:

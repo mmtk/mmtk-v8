@@ -1,0 +1,24 @@
+[package]
+name = "mmtk_v8"
+version = "0.0.1"
+authors = [" <>"]
+
+[lib]
+name = "mmtk_v8"
+# be careful - LTO is only allowed for certain crate types
+crate-type = ["cdylib"]
+
+[profile.release]
+lto = true
+
+[dependencies]
+libc = "0.2"
+lazy_static = "1.1"
+
+[dependencies.mmtk]
+git = "ssh://git@gitlab.anu.edu.au/mmtk/mmtk-core.git"
+rev = "69223ba4f7b0465183e63c005828c33a25bdf467"
+
+[features]
+default = []
+nogc = ["mmtk/nogc"]

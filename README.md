@@ -17,7 +17,7 @@ To use MMTk with V8, you will need to build MMTk with the V8 bindings, and you'l
 
 #### Software Dependencies
 
-* V8 comes with clear [instructions](https://v8.dev/docs/source-code) which we step through below.
+* V8 comes with clear [instructions](https://v8.dev/docs/source-code) which you should refer to as necessary.
 * MMTk requires the rustup nightly toolchain
   * Please visit [rustup.rs](https://rustup.rs/) for installation instructions.
 
@@ -39,7 +39,7 @@ $ git clone git@gitlab.anu.edu.au:mmtk/mmtk-core.git
 
 #### V8
 
-Please refer to the [V8 documentation](https://v8.dev/docs/source-code) for more information.
+The following is based on the [V8 documentation](https://v8.dev/docs/source-code).  Please refer to the original documentation if you run into difficulties getting V8.
 
 First, fetch and then update _depot_tools_, which contains the key build dependencies for V8.
 
@@ -49,18 +49,26 @@ $ export PATH=`pwd`/depot_tools:$PATH
 $ gclient
 ```
 
-Then fetch the V8 sources:
+You will need _depot_tools_ in your path when you build V8, so you may wish to update your shell profile (e.g. `.bash_profile`) accordingly.
+
+You should now be able to fetch the V8 sources:
 
 ```console
 $ fetch v8
 ```
 
-This will get the V8 sources and create a build directory for you.   It intentionally puts your V8 repo in a detached head state.  
+The fetch command will get the V8 sources and create a build directory for you.   It intentionally puts your V8 repo in a detached head state.  Tip: if you decide to maintain your own fork of V8, be mindful that the fetch command is a necessary step in setting up a new repo; it is not sufficient to simply clone the source.
 
 To update your V8 sources, use:
 
 ```console
 $ fetch v8
+```
+
+Occasionally V8 won't build after a fetch because dependencies have changed.   This is fixed by synching:
+
+```console
+$ gclient sync
 ```
 
 ## Build
@@ -69,10 +77,63 @@ First build MMTk, then V8
 
 ### Building MMTk
 
-
 _**Note:** MMTk is only tested with the `server` build variant._
 
 ### Building V8
+
+We provide instructions here for building V8 with its [_gm_ workflow](https://v8.dev/docs/build-gn).
+
+First you may wish to create an alias to the _gm_ script, which lives in the `tools/dev` directory of the V8 source tree.
+
+```console
+$ alias gm=/path/to/v8/tools/dev/gm.py
+```
+
+You may wish to add the above alias to your shell profile.
+
+Now you can build V8.
+
+### First Ensure you can Build Release V8
+
+Before trying to build V8 with MMTk, ensure you can build V8 without MMTk:
+
+```console
+$ cd v8
+$ gm x64.release
+```
+The above builds a standard release build of v8.
+
+### Next Ensure you can Build a Debug V8
+
+You need to create a config file, which we'll call `x64.debug`.
+
+Use `gn`, which will open an editor:
+
+```console
+gn args out/x64.debug
+```
+
+Enter the following values:
+
+```
+is_component_build = true
+is_debug = true
+symbol_level = 2
+target_cpu = "x64"
+use_goma = false
+v8_enable_backtrace = true
+v8_enable_fast_mksnapshot = true
+v8_enable_verify_csa = true
+v8_enable_slow_dchecks = false
+v8_optimized_debug = false
+v8_use_snapshot = true
+```
+
+
+### Then Build with MMTk
+
+You need to include the following flags in your 
+
 
 
 ## Test

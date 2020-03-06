@@ -132,6 +132,13 @@ v8_use_snapshot = true
 
 ### Then Build with MMTk
 
+First, build MMTk:
+
+```console
+$ cd mmtk-v8/mmtk
+$ cargo +nightly build --features nogc
+```
+
 You need to include the following flags in your 
 
 

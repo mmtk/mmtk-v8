@@ -126,7 +126,6 @@ v8_enable_fast_mksnapshot = true
 v8_enable_verify_csa = true
 v8_enable_slow_dchecks = false
 v8_optimized_debug = false
-v8_use_snapshot = true
 ```
 
 
@@ -139,8 +138,31 @@ $ cd mmtk-v8/mmtk
 $ cargo +nightly build --features nogc
 ```
 
-You need to include the following flags in your 
+Then create a gn config for building v8 with mmtk, which we'll call `x64.debug-mmtk`.
 
+Use `gn`, which will open an editor:
+
+```console
+$ gn args out/x64.debug-mmtk
+```
+
+Enter the following values:
+
+```
+is_component_build = true
+is_debug = true
+symbol_level = 2
+target_cpu = "x64"
+use_goma = false
+v8_enable_backtrace = true
+v8_enable_fast_mksnapshot = true
+v8_enable_verify_csa = true
+v8_enable_slow_dchecks = false
+v8_optimized_debug = false
+v8_enable_third_party_heap = true
+v8_third_party_heap_files = [ "<your path to v8>/v8/third_party/heap/mmtk/mmtk.cc", "<your path to v8>/v8/third_party/heap/mmtk/mmtk.h" ]
+v8_third_party_heap_libs = [ "<your path>/mmtk-v8/mmtk/target/debug/libmmtk_v8.so" ]
+```
 
 
 ## Test

@@ -29,12 +29,19 @@ _Tested on a Ryzen 9 3900X Machine with 32GB RAM, running Ubuntu 18.04-amd64 (Li
 
 ### Getting Sources (for MMTk and VM)
 
+First environment variables to refer to the root directories for MMTk and V8 respectively (change these to match your preferred locations):
+
+```console
+$ export MMTK_ROOT=$HOME/mmtk
+$ export V8_ROOT=$HOME/v8
+```
 
 #### MMTk
 
 ```console
-$ git clone git@gitlab.anu.edu.au:mmtk/mmtk-v8.git
-$ git clone git@gitlab.anu.edu.au:mmtk/mmtk-core.git
+$ cd $MMTK_ROOT
+$ git clone git@github.com:mmtk/mmtk-v8.git
+$ git clone git@github.com:mmtk/mmtk-core.git
 ```
 
 #### V8
@@ -44,6 +51,7 @@ The following is based on the [V8 documentation](https://v8.dev/docs/source-code
 First, fetch and then update _depot_tools_, which contains the key build dependencies for V8.
 
 ```console
+$ cd $V8_ROOT
 $ git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
 $ export PATH=`pwd`/depot_tools:$PATH
 $ gclient
@@ -77,7 +85,13 @@ First build MMTk, then V8
 
 ### Building MMTk
 
+```console
+$ cd $MMTK_ROOT/mmtk-v8/mmtk
+$ cargo +nightly build --features nogc
+```
+
 _**Note:** MMTk is only tested with the `server` build variant._
+
 
 ### Building V8
 
@@ -86,7 +100,7 @@ We provide instructions here for building V8 with its [_gm_ workflow](https://v8
 First you may wish to create an alias to the _gm_ script, which lives in the `tools/dev` directory of the V8 source tree.
 
 ```console
-$ alias gm=/path/to/v8/tools/dev/gm.py
+$ alias gm=$V8_ROOT/v8/tools/dev/gm.py
 ```
 
 You may wish to add the above alias to your shell profile.
@@ -98,7 +112,7 @@ Now you can build V8.
 Before trying to build V8 with MMTk, ensure you can build V8 without MMTk:
 
 ```console
-$ cd v8
+$ cd $V8_ROOT/v8
 $ gm x64.release
 ```
 The above builds a standard release build of v8.
@@ -134,7 +148,7 @@ v8_optimized_debug = false
 First, build MMTk:
 
 ```console
-$ cd mmtk-v8/mmtk
+$ cd $MMTK_ROOT/mmtk-v8/mmtk
 $ cargo +nightly build --features nogc
 ```
 
@@ -143,6 +157,7 @@ Then create a gn config for building v8 with mmtk, which we'll call `x64.debug-m
 Use `gn`, which will open an editor:
 
 ```console
+$ cd $V8_ROOT/v8
 $ gn args out/x64.debug-mmtk
 ```
 
@@ -160,11 +175,15 @@ v8_enable_verify_csa = true
 v8_enable_slow_dchecks = false
 v8_optimized_debug = false
 v8_enable_third_party_heap = true
-v8_third_party_heap_files = [ "<your path to v8>/v8/third_party/heap/mmtk/mmtk.cc", "<your path to v8>/v8/third_party/heap/mmtk/mmtk.h" ]
-v8_third_party_heap_libs = [ "<your path>/mmtk-v8/mmtk/target/debug/libmmtk_v8.so" ]
+v8_third_party_heap_files = [ "<path to mmtk-v8>/v8/third_party/heap/mmtk/mmtk.cc", "<path to mmtk-v8>/v8/third_party/heap/mmtk/mmtk.h" ]
+v8_third_party_heap_libs = [ "<path to mmtk-v8>/mmtk/target/debug/libmmtk_v8.so" ]
 ```
 
+Then build:
 
+```console
+$ gm x64.debug-mmtk
+```
 ## Test
 
 

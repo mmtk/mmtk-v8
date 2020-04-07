@@ -90,7 +90,12 @@ $ cd $MMTK_ROOT/mmtk-v8/mmtk
 $ cargo +nightly build --features nogc
 ```
 
-_**Note:** MMTk is only tested with the `server` build variant._
+_**Note:** You may need to use ssh-agent before attempting the cargo build in order to authenticate with github (see [here](https://github.com/rust-lang/cargo/issues/3487) for more info):_
+
+```console
+$ eval `ssh-agent`
+$ ssh-add
+```
 
 
 ### Building V8

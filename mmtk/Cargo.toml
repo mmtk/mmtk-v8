@@ -14,7 +14,11 @@ lto = true
 [dependencies]
 libc = "0.2"
 lazy_static = "1.1"
-mmtk = { path = "../../mmtk-core" }
+
+[dependencies.mmtk]
+git = "ssh://git@github.com/mmtk/mmtk-core.git"
+rev = "36744788016f0d66d0539bde62a68f078b9e275c"
+
 
 [features]
 default = []

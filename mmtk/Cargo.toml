@@ -14,11 +14,11 @@ lto = true
 [dependencies]
 libc = "0.2"
 lazy_static = "1.1"
+mmtk = { git = "ssh://git@github.com/mmtk/mmtk-core.git", rev = "36744788016f0d66d0539bde62a68f078b9e275c" }
 
-[dependencies.mmtk]
-git = "ssh://git@github.com/mmtk/mmtk-core.git"
-rev = "36744788016f0d66d0539bde62a68f078b9e275c"
-
+# Uncomment the following to build locally
+#[patch."ssh://git@github.com/mmtk/mmtk-core.git"]
+#mmtk = { path = "../../mmtk-core" }
 
 [features]
 default = []

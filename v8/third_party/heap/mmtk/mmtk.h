@@ -1,8 +1,15 @@
 #ifndef MMTK_H
 #define MMTK_H
 
+#include "src/heap/third-party/heap-api.h"
+#include "src/base/address-region.h"
+#include "src/heap/heap.h"
+#include "src/execution/isolate.h"
 #include <stdbool.h>
 #include <stddef.h>
+#include <cassert>
+#include <set>
+#include <iterator>
 
 #ifdef __cplusplus
 extern "C" {
@@ -25,7 +32,7 @@ extern void* alloc_slow(MMTk_Mutator mutator, size_t size,
 extern void post_alloc(MMTk_Mutator mutator, void* refer, void* type_refer,
     int bytes, int allocator);
 
-extern bool is_valid_ref(void* ref);
+extern bool is_live_object(void* ref);
 extern bool is_mapped_object(void* ref);
 extern bool is_mapped_address(void* addr);
 extern void modify_check(void* ref);
@@ -63,6 +70,38 @@ extern void handle_user_collection_request(void *tls);
 
 extern void start_control_collector(void *tls);
 extern void start_worker(void *tls, void* worker);
+
+/**
+ * V8 specific
+ */
+
+// redefining some constants from V8 to avoid calculation at runtime
+const size_t V8_code_alignment = v8::internal::kCodeAlignmentBits;
+const size_t V8_pointer_alignment = (v8::internal::kSystemPointerSize == 64) ? 6 : 
+                                (v8::internal::kSystemPointerSize == 32) ? 5 : 4;
+const size_t V8_double_alignment = (v8::internal::kDoubleSize == 128) ? 7 : 
+                                (v8::internal::kDoubleSize == 64) ? 6 : 5;
+const size_t V8_default_alignment = 0;
+
+extern void v8_gc_init(void* calls, size_t heap_size);
+
+typedef struct {
+    void (*stop_all_mutators) (void *tls);
+    void (*resume_mutators) (void *tls);
+    void (*spawn_collector_thread) (void *tls, void *ctx);
+    void (*block_for_gc) ();
+    void* (*active_collector) (void* tls);
+    void* (*get_next_mutator) ();
+    void (*reset_mutator_iterator) ();
+    void (*compute_static_roots) (void* trace, void* tls);
+    void (*compute_global_roots) (void* trace, void* tls);
+    void (*compute_thread_roots) (void* trace, void* tls);
+    void (*scan_object) (void* trace, void* object, void* tls);
+    void (*dump_object) (void* object);
+    size_t (*get_object_size) (void* object);
+    void* (*get_mmtk_mutator) (void* tls);
+    bool (*is_mutator) (void* tls);
+} V8_Upcalls;
 
 /**
  * JikesRVM-specific

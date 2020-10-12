@@ -14,6 +14,7 @@ lto = true
 [dependencies]
 libc = "0.2"
 lazy_static = "1.1"
+log = "*"
 mmtk = { git = "ssh://git@github.com/mmtk/mmtk-core.git" }
 
 # Uncomment the following and fix the path to mmtk-core to build locally

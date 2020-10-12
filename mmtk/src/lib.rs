@@ -3,6 +3,9 @@ extern crate libc;
 #[macro_use]
 extern crate lazy_static;
 
+#[macro_use]
+extern crate log;
+
 use std::ptr::null_mut;
 
 use mmtk::vm::VMBinding;

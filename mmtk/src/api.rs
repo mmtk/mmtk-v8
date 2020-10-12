@@ -42,12 +42,6 @@ pub extern "C" fn alloc(mutator: *mut SelectedMutator<V8>, size: usize,
 }
 
 #[no_mangle]
-pub extern "C" fn alloc_slow(mutator: *mut SelectedMutator<V8>, size: usize,
-                                        align: usize, offset: isize, allocator: Allocator) -> Address {
-    memory_manager::alloc_slow::<V8>(unsafe { &mut *mutator }, size, align, offset, allocator)
-}
-
-#[no_mangle]
 pub extern "C" fn post_alloc(mutator: *mut SelectedMutator<V8>, refer: ObjectReference, type_refer: ObjectReference,
                                         bytes: usize, allocator: Allocator) {
     memory_manager::post_alloc::<V8>(unsafe { &mut *mutator }, refer, type_refer, bytes, allocator)
@@ -55,12 +49,7 @@ pub extern "C" fn post_alloc(mutator: *mut SelectedMutator<V8>, refer: ObjectRef
 
 #[no_mangle]
 pub extern "C" fn will_never_move(object: ObjectReference) -> bool {
-    memory_manager::will_never_move(&SINGLETON, object)
-}
-
-#[no_mangle]
-pub extern "C" fn is_valid_ref(val: ObjectReference) -> bool {
-    memory_manager::is_valid_ref(&SINGLETON, val)
+    !object.is_movable()
 }
 
 #[no_mangle]
@@ -120,8 +109,8 @@ pub extern "C" fn trace_get_forwarded_reference(trace_local: *mut SelectedTraceL
 }
 
 #[no_mangle]
-pub extern "C" fn trace_is_live(trace_local: *mut SelectedTraceLocal<V8>, object: ObjectReference) -> bool{
-    memory_manager::trace_is_live::<V8>(unsafe { &mut *trace_local }, object)
+pub extern "C" fn is_live_object(object: ObjectReference) -> bool {
+    object.is_live()
 }
 
 #[no_mangle]
@@ -146,12 +135,12 @@ pub extern "C" fn handle_user_collection_request(tls: OpaquePointer) {
 
 #[no_mangle]
 pub extern "C" fn is_mapped_object(object: ObjectReference) -> bool {
-    memory_manager::is_mapped_object(&SINGLETON, object)
+    object.is_mapped()
 }
 
 #[no_mangle]
-pub extern "C" fn is_mapped_address(object: Address) -> bool {
-    memory_manager::is_mapped_address(&SINGLETON, object)
+pub extern "C" fn is_mapped_address(address: Address) -> bool {
+    address.is_mapped()
 }
 
 #[no_mangle]

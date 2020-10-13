@@ -14,6 +14,7 @@ use mmtk::MMTK;
 use mmtk::util::ObjectReference;
 use mmtk::{Plan, SelectedPlan};
 use libc::c_void;
+mod object_archive;
 pub mod scanning;
 pub mod collection;
 pub mod object_model;
@@ -50,6 +51,8 @@ impl VMBinding for V8 {
     type VMCollection = collection::VMCollection;
     type VMActivePlan = active_plan::VMActivePlan;
     type VMReferenceGlue = reference_glue::VMReferenceGlue;
+
+    const MAX_ALIGNMENT: usize = 32;
 }
 
 lazy_static! {

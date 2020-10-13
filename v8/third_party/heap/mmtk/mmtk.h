@@ -17,11 +17,13 @@ extern "C" {
 
 typedef void* MMTk_Mutator;
 typedef void* MMTk_TraceLocal;
+typedef void* MMTk_Heap;
+typedef void* MMTk_Heap_Archive;
 
 /**
  * Allocation
  */
-extern MMTk_Mutator bind_mutator(void *tls);
+extern MMTk_Mutator bind_mutator(void *mmtk, void *tls);
 
 extern void* alloc(MMTk_Mutator mutator, size_t size,
     size_t align, size_t offset, int allocator);
@@ -35,20 +37,23 @@ extern void post_alloc(MMTk_Mutator mutator, void* refer, void* type_refer,
 extern bool is_live_object(void* ref);
 extern bool is_mapped_object(void* ref);
 extern bool is_mapped_address(void* addr);
-extern void modify_check(void* ref);
+extern void modify_check(void *mmtk, void* ref);
 extern bool is_in_read_only_space(void* addr);
 extern bool is_in_code_space(void* addr);
 
 /**
  * Tracing
  */
-extern void report_delayed_root_edge(MMTk_TraceLocal trace_local,
+extern void report_delayed_root_edge(void *mmtk,
+                                     MMTk_TraceLocal trace_local,
                                      void* addr);
 
-extern bool will_not_move_in_current_collection(MMTk_TraceLocal trace_local,
+extern bool will_not_move_in_current_collection(void *mmtk,
+                                                MMTk_TraceLocal trace_local,
                                                 void* obj);
 
-extern void process_interior_edge(MMTk_TraceLocal trace_local, void* target,
+extern void process_interior_edge(void *mmtk,
+                                  MMTk_TraceLocal trace_local, void* target,
                                   void* slot, bool root);
 
 extern void* trace_get_forwarded_referent(MMTk_TraceLocal trace_local, void* obj);
@@ -57,16 +62,13 @@ extern void* trace_get_forwarded_reference(MMTk_TraceLocal trace_local, void* ob
 
 extern void* trace_retain_referent(MMTk_TraceLocal trace_local, void* obj);
 
-extern bool trace_is_live(MMTk_TraceLocal trace_local, void* obj);
-
 /**
  * Misc
  */
-extern void gc_init(size_t heap_size);
 extern bool will_never_move(void* object);
-extern bool process(char* name, char* value);
-extern void scan_region();
-extern void handle_user_collection_request(void *tls);
+extern bool process(void* mmtk, char* name, char* value);
+extern void scan_region(void *mmtk);
+extern void handle_user_collection_request(void *mmtk, void *tls);
 
 extern void start_control_collector(void *tls);
 extern void start_worker(void *tls, void* worker);
@@ -74,16 +76,16 @@ extern void start_worker(void *tls, void* worker);
 /**
  * V8 specific
  */
-
-// redefining some constants from V8 to avoid calculation at runtime
-const size_t V8_code_alignment = v8::internal::kCodeAlignmentBits;
-const size_t V8_pointer_alignment = (v8::internal::kSystemPointerSize == 64) ? 6 : 
-                                (v8::internal::kSystemPointerSize == 32) ? 5 : 4;
-const size_t V8_double_alignment = (v8::internal::kDoubleSize == 128) ? 7 : 
-                                (v8::internal::kDoubleSize == 64) ? 6 : 5;
-const size_t V8_default_alignment = 0;
-
-extern void v8_gc_init(void* calls, size_t heap_size);
+extern MMTk_Heap    v8_new_heap(void* calls, size_t heap_size);
+extern void*    tph_archive_new();
+extern void     tph_archive_delete(void* arch);
+extern void     tph_archive_insert(void* arch, void* object, void* isolate, uint8_t space);
+extern void     tph_archive_remove(void* arch, void* object);
+extern void     tph_archive_iter_reset(void* arch);
+extern void*    tph_archive_iter_next(void* arch);
+extern void*    tph_archive_inner_to_obj(void* arch, void* inner_ptr);
+extern void*    tph_archive_obj_to_isolate(void* arch, void* obj_ptr);
+extern uint8_t  tph_archive_obj_to_space(void* arch, void* obj_ptr);
 
 typedef struct {
     void (*stop_all_mutators) (void *tls);
@@ -104,52 +106,10 @@ typedef struct {
 } V8_Upcalls;
 
 /**
- * JikesRVM-specific
- */
-extern void jikesrvm_gc_init(void* jtoc, size_t heap_size);
-
-extern void enable_collection(void *tls);
-
-extern void* jikesrvm_alloc(MMTk_Mutator mutator, size_t size,
-    size_t align, size_t offset, int allocator);
-
-extern void* jikesrvm_alloc_slow(MMTk_Mutator mutator, size_t size,
-    size_t align, size_t offset, int allocator);
-
-extern void jikesrvm_handle_user_collection_request(void *tls);
-
-extern void jikesrvm_harness_begin(void *tls);
-
-/**
  * VM Accounting
  */
 extern size_t free_bytes();
 extern size_t total_bytes();
-
-/**
- * OpenJDK-specific
- */
-typedef struct {
-    void (*stop_all_mutators) (void *tls);
-    void (*resume_mutators) (void *tls);
-} OpenJDK_Upcalls;
-
-extern void openjdk_gc_init(OpenJDK_Upcalls *calls, size_t heap_size);
-
-extern size_t used_bytes();
-extern void* starting_heap_address();
-extern void* last_heap_address();
-extern void iterator(); // ???
-
-
-// (It is the total_space - capacity_of_to_space in Semispace )
-// PZ: It shouldn't be ...?
-extern size_t openjdk_max_capacity();
-extern size_t _noaccess_prefix();  // ???
-extern size_t _alignment();        // ???
-extern bool   executable();
-
-//  Last_gc_time();
 
 /**
  * Reference Processing
@@ -158,10 +118,8 @@ extern void add_weak_candidate(void* ref, void* referent);
 extern void add_soft_candidate(void* ref, void* referent);
 extern void add_phantom_candidate(void* ref, void* referent);
 
-extern void harness_begin(void *tls);
-extern void harness_end();
-
-extern void* get_object_head_address(void* inner_pointer);
+extern void harness_begin(void* ref, void *tls);
+extern void harness_end(void* ref);
 
 #ifdef __cplusplus
 }

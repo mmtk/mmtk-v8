@@ -14,12 +14,15 @@ lto = true
 [dependencies]
 libc = "0.2"
 lazy_static = "1.1"
-mmtk = { git = "ssh://git@github.com/mmtk/mmtk-core.git", rev = "36744788016f0d66d0539bde62a68f078b9e275c" }
+log = "*"
+mmtk = { git = "ssh://git@github.com/mmtk/mmtk-core.git" }
 
-# Uncomment the following to build locally
-#[patch."ssh://git@github.com/mmtk/mmtk-core.git"]
-#mmtk = { path = "../../mmtk-core" }
+# Uncomment the following and fix the path to mmtk-core to build locally
+# mmtk = { path = "../../mmtk-core" }
 
 [features]
-default = []
+default = ["code_space", "ro_space", "force_32bit_heap_layout"]
 nogc = ["mmtk/nogc"]
+code_space = ["mmtk/code_space"]
+ro_space = ["mmtk/ro_space"]
+force_32bit_heap_layout = ["mmtk/force_32bit_heap_layout"]

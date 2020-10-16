@@ -15,7 +15,7 @@ lto = true
 libc = "0.2"
 lazy_static = "1.1"
 log = "*"
-mmtk = { git = "ssh://git@github.com/mmtk/mmtk-core.git" }
+mmtk = { git = "ssh://git@github.com/mmtk/mmtk-core.git", rev = "d82284eaf2ae5e443eb10c236e24f616719bd831" }
 
 # Uncomment the following and fix the path to mmtk-core to build locally
 # mmtk = { path = "../../mmtk-core" }

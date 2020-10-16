@@ -1,0 +1,48 @@
+name: V8 Tests
+
+on:
+  pull_request:
+    branches:
+      - master
+
+env:
+  RUSTUP_TOOLCHAIN: nightly-2020-07-08
+  THE_ROOT: /home/gitlab-runner/actions-runner/_work/mmtk-v8
+  V8_ROOT: /home/gitlab-runner/actions-runner/_work/mmtk-v8/v8
+
+jobs:
+  test:
+    runs-on: [self-hosted, linux, freq-scaling-on]
+    steps:
+      # Checkout repos and submodules
+      - uses: actions/checkout@v2
+        with:
+          # CI_ACCESS_TOKEN is a secret set with the repo
+          token: ${{ secrets.CI_ACCESS_TOKEN }}
+          submodules: true
+      
+      - name: Set credential for cargo dependency
+        run: sed -i 's/ssh:\/\/git@github.com\/mmtk/https:\/\/javadamiri:${{ secrets.CI_ACCESS_TOKEN }}@github.com\/mmtk/g' mmtk/Cargo.toml
+      
+      - name: Setup Environments
+        run: ./.github/scripts/ci-setup.sh
+      
+      - name: Build MMTk NOGC
+        run: ./.github/scripts/build-mmtk.sh
+        
+      - name: Get V8 Sources
+        run: ./.github/scripts/get-v8.sh
+      
+      - name: Build V8 with MMTk
+        run: ./.github/scripts/build-v8.sh
+      
+      - name: Run V8 regression Tests
+        run: ./.github/scripts/run-regress.sh
+        continue-on-error: true
+        
+      - name: Run V8 unittests Tests
+        run: ./.github/scripts/run-unittests.sh
+        continue-on-error: true
+      
+      - name: Run V8 Benchmark Tests
+        run: ./.github/scripts/run-benchmarks.sh

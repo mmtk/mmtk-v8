@@ -1,0 +1,23 @@
+# Build arguments go here.
+# See "gn args <out_dir> --list" for available build arguments.
+#
+is_component_build = true
+is_debug = true
+symbol_level = 2
+target_cpu = "x64"
+use_goma = false
+v8_enable_backtrace = true
+v8_enable_fast_mksnapshot = true
+v8_enable_verify_csa = true
+v8_enable_slow_dchecks = false
+v8_optimized_debug = false
+v8_disable_write_barriers = true
+v8_enable_single_generation = true
+v8_enable_shared_ro_heap = false
+v8_enable_pointer_compression = false
+v8_enable_third_party_heap = true
+v8_third_party_heap_files = [ "../../mmtk-v8/v8/third_party/heap/mmtk/mmtk.cc", 
+"../../mmtk-v8/v8/third_party/heap/mmtk/mmtk.h",
+"../../mmtk-v8/v8/third_party/heap/mmtk/mmtkUpcalls.h",
+"../../mmtk-v8/v8/third_party/heap/mmtk/mmtkUpcalls.cc"]
+v8_third_party_heap_libs = [ "../../mmtk-v8/mmtk/target/debug/libmmtk_v8.so" ]

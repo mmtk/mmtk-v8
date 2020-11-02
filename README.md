@@ -10,17 +10,17 @@ This repository provides the V8 binding for MMTk.
 
 ## Requirements
 
-We maintain an up to date list of the prerequisite for building MMTk and its bindings in the [mmtk-dev](https://github.com/mmtk/mmtk-dev) repository.
+We maintain an up to date list of the prerequisite for building MMTk and its bindings in the [mmtk-dev-env](https://github.com/mmtk/mmtk-dev-env) repository.
 Please make sure your dev machine satisfies those prerequisites.
 
 MMTk/V8 currently only supports `linux-x86_64`.
 
 ### Before you continue
 
-If you use the set-up explained in [mmtk-dev](https://github.com/mmtk/mmtk-dev), make sure to set the default Rust toolchain to the one specified in [mmtk-dev](https://github.com/mmtk/mmtk-dev), e.g. by running:
+If you use the set-up explained in [mmtk-dev-env](https://github.com/mmtk/mmtk-dev-env), make sure to set the default Rust toolchain to the one specified in [mmtk-dev-env](https://github.com/mmtk/mmtk-dev-env), e.g. by running:
 
 ```console
-$ # replace nightly-YYYY-MM-DD with the correct toolchain version
+$ # replace nightly-YYYY-MM-DD with the the toolchain specified in mmtk-dev-env
 $ Export RUSTUP_TOOLCHAIN=nightly-YYYY-MM-DD
 ```
 
@@ -33,7 +33,7 @@ $ ssh-add
 
 ### Getting Sources (for MMTk and VM)
 
-First environment variables to refer to the root directories for MMTk and V8 respectively (change these to match your preferred locations):
+First, set environment variables to refer to the root directories for MMTk and V8 respectively (change these to match your preferred locations):
 
 ```console
 $ export MMTK_V8_ROOT=$HOME/mmtk_v8_root
@@ -53,7 +53,7 @@ The following is based on the [V8 documentation](https://v8.dev/docs/source-code
 First, fetch and then update _depot_tools_, which contains the key build dependencies for V8.
 
 ```console
-$ cd $MMTK_V8_ROOT/v8
+$ cd $MMTK_V8_ROOT
 $ git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
 $ export PATH=`pwd`/depot_tools:$PATH
 $ gclient
@@ -101,7 +101,7 @@ We provide instructions here for building V8 with its [_gm_ workflow](https://v8
 First you may wish to create an alias to the _gm_ script, which lives in the `tools/dev` directory of the V8 source tree.
 
 ```console
-$ alias gm=$MMTK_V8_ROOT/v8/v8/tools/dev/gm.py
+$ alias gm=$MMTK_V8_ROOT/v8/tools/dev/gm.py
 ```
 
 You may wish to add the above alias to your shell profile.
@@ -113,7 +113,7 @@ Now you can build V8.
 Before trying to build V8 with MMTk, ensure you can build V8 without MMTk:
 
 ```console
-$ cd $MMTK_V8_ROOT/v8/v8
+$ cd $MMTK_V8_ROOT/v8
 $ gm x64.release
 ```
 The above builds a standard release build of v8.
@@ -150,7 +150,7 @@ Create a gn config for building v8 with mmtk, which we'll call `x64.debug-mmtk`.
 Use `gn`, which will open an editor:
 
 ```console
-$ cd $MMTK_V8_ROOT/v8/v8
+$ cd $MMTK_V8_ROOT/v8
 $ gn args out/x64.debug-mmtk
 ```
 
@@ -172,11 +172,11 @@ v8_enable_single_generation = true
 v8_enable_shared_ro_heap = false
 v8_enable_pointer_compression = false
 v8_enable_third_party_heap = true
-v8_third_party_heap_files = [ "../../mmtk-v8/v8/third_party/heap/mmtk/mmtk.cc", 
-"../../mmtk-v8/v8/third_party/heap/mmtk/mmtk.h",
-"../../mmtk-v8/v8/third_party/heap/mmtk/mmtkUpcalls.h",
-"../../mmtk-v8/v8/third_party/heap/mmtk/mmtkUpcalls.cc"]
-v8_third_party_heap_libs = [ "../../mmtk-v8/mmtk/target/debug/libmmtk_v8.so" ]
+v8_third_party_heap_files = [ "../mmtk-v8/v8/third_party/heap/mmtk/mmtk.cc", 
+"../mmtk-v8/v8/third_party/heap/mmtk/mmtk.h",
+"../mmtk-v8/v8/third_party/heap/mmtk/mmtkUpcalls.h",
+"../mmtk-v8/v8/third_party/heap/mmtk/mmtkUpcalls.cc"]
+v8_third_party_heap_libs = [ "../mmtk-v8/mmtk/target/debug/libmmtk_v8.so" ]
 ```
 
 Then build:

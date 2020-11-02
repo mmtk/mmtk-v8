@@ -1,10 +1,9 @@
 set -xe
 
-# create and change to the V8 directory
-cd $THE_ROOT
-rm -R -f v8
-mkdir v8
-cd v8
+# clean-up the previously created V8 directories
+cd $V8_ROOT
+rm -rf v8
+rm -rf depot_tools
 
 # clone the V8/Chromium depot tools and add them to path
 git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git

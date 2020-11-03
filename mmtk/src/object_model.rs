@@ -1,6 +1,6 @@
 use libc::c_void;
 use mmtk::vm::*;
-use mmtk::Allocator;
+use mmtk::AllocationSemantics;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::util::OpaquePointer;
 use std::sync::atomic::{AtomicU8, AtomicUsize, Ordering};
@@ -19,7 +19,7 @@ impl ObjectModel<V8> for VMObjectModel {
        unimplemented!()
     }
 
-    fn copy(from: ObjectReference, allocator: Allocator, tls: OpaquePointer) -> ObjectReference {
+    fn copy(from: ObjectReference, semantics: AllocationSemantics, tls: OpaquePointer) -> ObjectReference {
         unimplemented!()
     }
 

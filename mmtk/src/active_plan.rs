@@ -1,4 +1,3 @@
-use libc::c_void;
 use mmtk::{Plan, SelectedPlan};
 use mmtk::scheduler::GCWorker;
 use mmtk::vm::ActivePlan;
@@ -27,7 +26,7 @@ impl ActivePlan<V8> for VMActivePlan {
 
     unsafe fn mutator(tls: OpaquePointer) -> &'static mut <SelectedPlan<V8> as Plan>::Mutator {
         let m = ((*UPCALLS).get_mmtk_mutator)(tls);
-        unsafe { &mut *m }
+        &mut *m
     }
 
     fn collector_count() -> usize {

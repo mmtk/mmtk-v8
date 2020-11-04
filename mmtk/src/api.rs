@@ -1,12 +1,9 @@
 use libc::c_void;
 use libc::c_char;
 use std::ffi::CStr;
-use std::ptr::null_mut;
 use mmtk::memory_manager;
 use mmtk::AllocationSemantics;
 use mmtk::util::{ObjectReference, OpaquePointer, Address};
-use mmtk::Plan;
-use mmtk::util::constants::LOG_BYTES_IN_PAGE;
 use mmtk::{Mutator, SelectedPlan};
 use mmtk::scheduler::GCWorker;
 use mmtk::MMTK;

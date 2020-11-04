@@ -1,4 +1,3 @@
-use std::slice::Iter;
 use std::sync::RwLock;
 use libc::c_void;
 use mmtk::util::address::Address;
@@ -39,7 +38,7 @@ pub extern "C" fn tph_archive_inner_to_obj(
     let arch = 
         unsafe { Box::from_raw(arch as *mut ObjectArchive) };
     let res = arch.inner_addr_to_object(Address::from_mut_ptr(inner_ptr));
-    let arch = Box::into_raw(arch);
+    Box::into_raw(arch);
     res.to_mut_ptr()
 }
 
@@ -49,7 +48,7 @@ pub extern "C" fn tph_archive_obj_to_isolate(
     let arch = 
         unsafe { Box::from_raw(arch as *mut ObjectArchive) };
     let res = arch.object_to_isolate(Address::from_mut_ptr(obj_ptr));
-    let arch = Box::into_raw(arch);
+    Box::into_raw(arch);
     res.to_mut_ptr()
 }
 
@@ -59,7 +58,7 @@ pub extern "C" fn tph_archive_obj_to_space(
     let arch = 
         unsafe { Box::from_raw(arch as *mut ObjectArchive) };
     let res = arch.object_to_space(Address::from_mut_ptr(obj_ptr));
-    let arch = Box::into_raw(arch);
+    Box::into_raw(arch);
     res
 }
 
@@ -156,7 +155,7 @@ impl ObjectArchive {
         let idx = 
             match lst.binary_search(&obj_addr.as_usize()) {
                 Ok(idx) => idx,
-                Err(idx) => {
+                Err(_) => {
                     panic!("OA.remove: Object {:?} not archived!", obj_addr);
                 }
             };

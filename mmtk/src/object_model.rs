@@ -1,10 +1,8 @@
-use libc::c_void;
 use mmtk::vm::*;
 use mmtk::AllocationSemantics;
 use mmtk::CopyContext;
 use mmtk::util::{Address, ObjectReference};
-use mmtk::util::OpaquePointer;
-use std::sync::atomic::{AtomicU8, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicU8};
 use super::UPCALLS;
 use V8;
 

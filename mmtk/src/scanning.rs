@@ -1,13 +1,9 @@
-use libc::c_void;
 use mmtk::vm::Scanning;
-use mmtk::{Mutator, SelectedPlan, TransitiveClosure, TraceLocal};
-use mmtk::util::{ObjectReference, SynchronizedCounter};
+use mmtk::{Mutator, SelectedPlan, TransitiveClosure};
+use mmtk::util::{ObjectReference};
 use mmtk::util::OpaquePointer;
 use mmtk::scheduler::gc_works::ProcessEdgesWork;
 use V8;
-use super::UPCALLS;
-
-static COUNTER: SynchronizedCounter = SynchronizedCounter::new(0);
 
 pub struct VMScanning {}
 

@@ -1,4 +1,3 @@
-use libc::c_void;
 use mmtk::vm::Collection;
 use mmtk::util::OpaquePointer;
 use mmtk::{MutatorContext};
@@ -23,7 +22,7 @@ impl Collection<V8> for VMCollection {
         }
     }
 
-    fn block_for_gc(tls: OpaquePointer) {
+    fn block_for_gc(_tls: OpaquePointer) {
         unsafe {
             ((*UPCALLS).block_for_gc)();
         }
@@ -41,6 +40,6 @@ impl Collection<V8> for VMCollection {
     }
 
     fn prepare_mutator<T: MutatorContext<V8>>(tls: OpaquePointer, m: &T) {
-        // unimplemented!()
+        unimplemented!()
     }
 }

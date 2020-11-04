@@ -7,7 +7,8 @@ use mmtk::AllocationSemantics;
 use mmtk::util::{ObjectReference, OpaquePointer, Address};
 use mmtk::Plan;
 use mmtk::util::constants::LOG_BYTES_IN_PAGE;
-use mmtk::{SelectedMutator, SelectedTraceLocal, SelectedCollector};
+use mmtk::{Mutator, SelectedPlan};
+use mmtk::scheduler::GCWorker;
 use mmtk::MMTK;
 
 use V8;
@@ -21,9 +22,10 @@ pub extern "C" fn v8_new_heap(calls: *const V8_Upcalls, heap_size: usize)
         UPCALLS = calls;
     };
     let mmtk: Box<MMTK<V8>> = Box::new(MMTK::new());
-    memory_manager::gc_init(&*mmtk, heap_size);
+    let mmtk: *mut MMTK<V8> = Box::into_raw(mmtk);
+    memory_manager::gc_init(unsafe { &mut *mmtk }, heap_size);
     
-    Box::into_raw(mmtk) as *mut c_void
+   mmtk as *mut c_void
 }
 
 #[no_mangle]
@@ -32,23 +34,23 @@ pub extern "C" fn start_control_collector(mmtk: &mut MMTK<V8>, tls: OpaquePointe
 }
 
 #[no_mangle]
-pub extern "C" fn bind_mutator(mmtk: &'static mut MMTK<V8>, tls: OpaquePointer) -> *mut SelectedMutator<V8> {
+pub extern "C" fn bind_mutator(mmtk: &'static mut MMTK<V8>, tls: OpaquePointer) -> *mut Mutator<SelectedPlan<V8>> {
     Box::into_raw(memory_manager::bind_mutator(mmtk, tls))
 }
 
 #[no_mangle]
-pub extern "C" fn destroy_mutator(mutator: *mut SelectedMutator<V8>) {
+pub extern "C" fn destroy_mutator(mutator: *mut Mutator<SelectedPlan<V8>>) {
     memory_manager::destroy_mutator(unsafe { Box::from_raw(mutator) })
 }
 
 #[no_mangle]
-pub extern "C" fn alloc(mutator: &mut SelectedMutator<V8>, size: usize,
+pub extern "C" fn alloc(mutator: &mut Mutator<SelectedPlan<V8>>, size: usize,
                     align: usize, offset: isize, semantics: AllocationSemantics) -> Address {
     memory_manager::alloc::<V8>(mutator, size, align, offset, semantics)
 }
 
 #[no_mangle]
-pub extern "C" fn post_alloc(mutator: &mut SelectedMutator<V8>, refer: ObjectReference, type_refer: ObjectReference,
+pub extern "C" fn post_alloc(mutator: &mut Mutator<SelectedPlan<V8>>, refer: ObjectReference, type_refer: ObjectReference,
                                         bytes: usize, semantics: AllocationSemantics) {
     memory_manager::post_alloc::<V8>(mutator, refer, type_refer, bytes, semantics)
 }
@@ -59,24 +61,8 @@ pub extern "C" fn will_never_move(object: ObjectReference) -> bool {
 }
 
 #[no_mangle]
-pub extern "C" fn report_delayed_root_edge(mmtk: &mut MMTK<V8>, trace_local: &mut SelectedTraceLocal<V8>, addr: Address) {
-    memory_manager::report_delayed_root_edge(mmtk, trace_local, addr);
-}
-
-#[no_mangle]
-pub extern "C" fn will_not_move_in_current_collection(mmtk: &mut MMTK<V8>, trace_local: &mut SelectedTraceLocal<V8>, obj: ObjectReference) -> bool {
-    memory_manager::will_not_move_in_current_collection(
-        mmtk, trace_local, obj)
-}
-
-#[no_mangle]
-pub extern "C" fn process_interior_edge(mmtk: &mut MMTK<V8>, trace_local: &mut SelectedTraceLocal<V8>, target: ObjectReference, slot: Address, root: bool) {
-    memory_manager::process_interior_edge(mmtk, trace_local, target, slot, root);
-}
-
-#[no_mangle]
-pub extern "C" fn start_worker(tls: OpaquePointer, worker: &mut SelectedCollector<V8>) {
-    memory_manager::start_worker::<V8>(tls, worker);
+pub extern "C" fn start_worker(mmtk: &'static mut MMTK<V8>, tls: OpaquePointer, worker: &'static mut GCWorker<V8>) {
+    memory_manager::start_worker::<V8>(tls, worker, mmtk);
 }
 
 #[no_mangle]
@@ -103,21 +89,6 @@ pub extern "C" fn total_bytes(mmtk: &mut MMTK<V8>) -> usize {
 #[cfg(feature = "sanity")]
 pub extern "C" fn scan_region(mmtk: &mut MMTK<V8>) {
     memory_manager::scan_region(mmtk);
-}
-
-#[no_mangle]
-pub extern "C" fn trace_get_forwarded_referent(trace_local: &mut SelectedTraceLocal<V8>, object: ObjectReference) -> ObjectReference{
-    memory_manager::trace_get_forwarded_referent::<V8>(trace_local, object)
-}
-
-#[no_mangle]
-pub extern "C" fn trace_get_forwarded_reference(trace_local: &mut SelectedTraceLocal<V8>, object: ObjectReference) -> ObjectReference{
-    memory_manager::trace_get_forwarded_reference::<V8>(trace_local, object)
-}
-
-#[no_mangle]
-pub extern "C" fn trace_retain_referent(trace_local: &mut SelectedTraceLocal<V8>, object: ObjectReference) -> ObjectReference{
-    memory_manager::trace_retain_referent::<V8>(trace_local, object)
 }
 
 #[no_mangle]
@@ -166,7 +137,7 @@ pub extern "C" fn harness_begin(mmtk: &mut MMTK<V8>, tls: OpaquePointer) {
 }
 
 #[no_mangle]
-pub extern "C" fn harness_end(mmtk: &mut MMTK<V8>, _tls: OpaquePointer) {
+pub extern "C" fn harness_end(mmtk: &'static mut MMTK<V8>, _tls: OpaquePointer) {
     memory_manager::harness_end(mmtk);
 }
 

@@ -1,8 +1,9 @@
 use libc::c_void;
 use mmtk::vm::Scanning;
-use mmtk::{TransitiveClosure, TraceLocal};
+use mmtk::{Mutator, SelectedPlan, TransitiveClosure, TraceLocal};
 use mmtk::util::{ObjectReference, SynchronizedCounter};
 use mmtk::util::OpaquePointer;
+use mmtk::scheduler::gc_works::ProcessEdgesWork;
 use V8;
 use super::UPCALLS;
 
@@ -11,45 +12,35 @@ static COUNTER: SynchronizedCounter = SynchronizedCounter::new(0);
 pub struct VMScanning {}
 
 impl Scanning<V8> for VMScanning {
+    const SCAN_MUTATORS_IN_SAFEPOINT: bool = false;
+    const SINGLE_THREAD_MUTATOR_SCANNING: bool = false;
+
     fn scan_object<T: TransitiveClosure>(trace: &mut T, object: ObjectReference, tls: OpaquePointer) {
-        unsafe {
-            ((*UPCALLS).scan_object)(::std::mem::transmute(trace), object, tls);
-        }
-    }
-
-    fn reset_thread_counter() {
-        COUNTER.reset();
-    }
-
-    fn notify_initial_thread_scan_complete(partial_scan: bool, tls: OpaquePointer) {
-        // unimplemented!()
-        // TODO
-    }
-
-    fn compute_static_roots<T: TraceLocal>(trace: &mut T, tls: OpaquePointer) {
-        unsafe {
-            ((*UPCALLS).compute_static_roots)(::std::mem::transmute(trace), tls);
-        }
-    }
-
-    fn compute_global_roots<T: TraceLocal>(trace: &mut T, tls: OpaquePointer) {
-        unsafe {
-            ((*UPCALLS).compute_global_roots)(::std::mem::transmute(trace), tls);
-        }
-    }
-
-    fn compute_thread_roots<T: TraceLocal>(trace: &mut T, tls: OpaquePointer) {
-        unsafe {
-            ((*UPCALLS).compute_thread_roots)(::std::mem::transmute(trace), tls);
-        }
-    }
-
-    fn compute_new_thread_roots<T: TraceLocal>(trace: &mut T, tls: OpaquePointer) {
         unimplemented!()
     }
 
-    fn compute_bootimage_roots<T: TraceLocal>(trace: &mut T, tls: OpaquePointer) {
-        // Do nothing
+    fn reset_thread_counter() {
+        unimplemented!()
+    }
+
+    fn notify_initial_thread_scan_complete(_partial_scan: bool, _tls: OpaquePointer) {
+        unimplemented!()
+    }
+
+    fn scan_objects<W: ProcessEdgesWork<VM=V8>>(objects: &[ObjectReference]) {
+        unimplemented!()
+    }
+
+    fn scan_thread_roots<W: ProcessEdgesWork<VM=V8>>() {
+        unimplemented!()
+    }
+
+    fn scan_thread_root<W: ProcessEdgesWork<VM=V8>>(mutator: &'static mut Mutator<SelectedPlan<V8>>, _tls: OpaquePointer) {
+        unimplemented!()
+    }
+
+    fn scan_vm_specific_roots<W: ProcessEdgesWork<VM=V8>>() {
+        unimplemented!()
     }
 
     fn supports_return_barrier() -> bool {

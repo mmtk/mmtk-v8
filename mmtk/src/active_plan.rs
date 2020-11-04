@@ -1,5 +1,5 @@
-use libc::c_void;
 use mmtk::{Plan, SelectedPlan};
+use mmtk::scheduler::GCWorker;
 use mmtk::vm::ActivePlan;
 use mmtk::util::OpaquePointer;
 use V8;
@@ -14,8 +14,8 @@ impl ActivePlan<V8> for VMActivePlan {
         &SINGLETON.plan
     }
 
-    unsafe fn collector(tls: OpaquePointer) -> &'static mut <SelectedPlan<V8> as Plan<V8>>::CollectorT {
-        let c = ((*UPCALLS).active_collector)(tls);
+    fn worker(tls: OpaquePointer) -> &'static mut GCWorker<V8> {
+        let c = unsafe { ((*UPCALLS).active_collector)(tls) };
         assert!(!c.is_null());
         unsafe { &mut *c }
     }
@@ -24,9 +24,9 @@ impl ActivePlan<V8> for VMActivePlan {
         ((*UPCALLS).is_mutator)(tls)
     }
 
-    unsafe fn mutator(tls: OpaquePointer) -> &'static mut <SelectedPlan<V8> as Plan<V8>>::MutatorT {
+    unsafe fn mutator(tls: OpaquePointer) -> &'static mut <SelectedPlan<V8> as Plan>::Mutator {
         let m = ((*UPCALLS).get_mmtk_mutator)(tls);
-        unsafe { &mut *m }
+        &mut *m
     }
 
     fn collector_count() -> usize {
@@ -39,7 +39,7 @@ impl ActivePlan<V8> for VMActivePlan {
         }
     }
 
-    fn get_next_mutator() -> Option<&'static mut <SelectedPlan<V8> as Plan<V8>>::MutatorT> {
+    fn get_next_mutator() -> Option<&'static mut <SelectedPlan<V8> as Plan>::Mutator> {
         let _guard = MUTATOR_ITERATOR_LOCK.lock().unwrap();
         unsafe {
             let m = ((*UPCALLS).get_next_mutator)();
@@ -49,6 +49,10 @@ impl ActivePlan<V8> for VMActivePlan {
                 Some(&mut *m)
             }
         }
+    }
+
+    fn number_of_mutators() -> usize {
+        unimplemented!()
     }
 }
 

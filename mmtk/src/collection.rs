@@ -1,7 +1,8 @@
-use libc::c_void;
 use mmtk::vm::Collection;
 use mmtk::util::OpaquePointer;
-use mmtk::{MutatorContext, ParallelCollector};
+use mmtk::{MutatorContext};
+use mmtk::scheduler::GCWorker;
+use mmtk::scheduler::gc_works::ProcessEdgesWork;
 
 use V8;
 use UPCALLS;
@@ -9,7 +10,7 @@ use UPCALLS;
 pub struct VMCollection {}
 
 impl Collection<V8> for VMCollection {
-    fn stop_all_mutators(tls: OpaquePointer) {
+    fn stop_all_mutators<E: ProcessEdgesWork<VM=V8>>(tls: OpaquePointer) {
         unsafe {
             ((*UPCALLS).stop_all_mutators)(tls);
         }
@@ -21,24 +22,24 @@ impl Collection<V8> for VMCollection {
         }
     }
 
-    fn block_for_gc(tls: OpaquePointer) {
+    fn block_for_gc(_tls: OpaquePointer) {
         unsafe {
             ((*UPCALLS).block_for_gc)();
         }
     }
 
-    fn spawn_worker_thread<T: ParallelCollector<V8>>(tls: OpaquePointer, ctx: Option<&mut T>) {
+    fn spawn_worker_thread(tls: OpaquePointer, ctx: Option<&GCWorker<V8>>) {
         let ctx_ptr = if let Some(r) = ctx {
-            r as *mut T
+            r as *const GCWorker<V8> as *mut GCWorker<V8>
         } else {
             std::ptr::null_mut()
         };
         unsafe {
-            ((*UPCALLS).spawn_collector_thread)(tls, ctx_ptr as usize as _);
+            ((*UPCALLS).spawn_worker_thread)(tls, ctx_ptr as usize as _);
         }
     }
 
     fn prepare_mutator<T: MutatorContext<V8>>(tls: OpaquePointer, m: &T) {
-        // unimplemented!()
+        unimplemented!()
     }
 }

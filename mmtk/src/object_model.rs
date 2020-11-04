@@ -1,12 +1,10 @@
-use libc::c_void;
 use mmtk::vm::*;
-use mmtk::Allocator;
+use mmtk::AllocationSemantics;
+use mmtk::CopyContext;
 use mmtk::util::{Address, ObjectReference};
-use mmtk::util::OpaquePointer;
-use std::sync::atomic::{AtomicU8, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicU8};
 use super::UPCALLS;
 use V8;
-use mmtk::CollectorContext;
 
 pub struct VMObjectModel {}
 
@@ -19,7 +17,7 @@ impl ObjectModel<V8> for VMObjectModel {
        unimplemented!()
     }
 
-    fn copy(from: ObjectReference, allocator: Allocator, tls: OpaquePointer) -> ObjectReference {
+    fn copy(from: ObjectReference, allocator: AllocationSemantics, copy_context: &mut impl CopyContext) -> ObjectReference {
         unimplemented!()
     }
 

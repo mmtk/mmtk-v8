@@ -2,6 +2,7 @@ name: V8 Tests
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, labeled]
     branches:
       - master
 

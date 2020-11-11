@@ -25,7 +25,10 @@ jobs:
       
       - name: Set credential for cargo dependency
         run: sed -i 's/ssh:\/\/git@github.com\/mmtk/https:\/\/javadamiri:${{ secrets.CI_ACCESS_TOKEN }}@github.com\/mmtk/g' mmtk/Cargo.toml
-      
+
+      # Be aware that any changes made to the following steps should be made to ci-test.sh as well.
+      # MMTk core tests the V8 binding by invoking ci-test.sh.
+
       - name: Setup Environments
         run: ./.github/scripts/ci-setup.sh
       

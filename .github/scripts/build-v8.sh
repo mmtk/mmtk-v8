@@ -7,7 +7,7 @@ cd $V8_ROOT/v8
 export PATH=$V8_ROOT/depot_tools:$PATH
 
 # generate the default setup and copy mmtk-v8's required arguments
-mkdir out/x64.debug-mmtk
+mkdir -p out/x64.debug-mmtk
 # copy the args
 cp $THE_ROOT/mmtk-v8/.github/scripts/args.gn out/x64.debug-mmtk/
 # generate files according to the copied args file

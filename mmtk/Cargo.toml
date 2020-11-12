@@ -15,10 +15,17 @@ lto = true
 libc = "0.2"
 lazy_static = "1.1"
 log = "*"
-mmtk = { git = "ssh://git@github.com/mmtk/mmtk-core.git", rev = "5cd2407424061db66cdb8573fac30704b948a11c" }
 
+# Be very careful to commit any changes to the following mmtk dependency, as our CI scripts (including mmtk-core CI)
+# rely on matching these lines to modify them: e.g. change ssh to https with token or comment out the git dependency
+# and use the local path.
+# These changes are safe:
+# - change branch
+# - change repo name
+# But other changes including adding/removing whitespaces in commented lines may break the CI.
+mmtk = { git = "ssh://git@github.com/mmtk/mmtk-core.git", rev = "5cd2407424061db66cdb8573fac30704b948a11c" }
 # Uncomment the following and fix the path to mmtk-core to build locally
-# mmtk = { path = "../../mmtk-core" }
+# mmtk = { path = "../repos/mmtk-core" }
 
 [features]
 default = ["code_space", "ro_space", "force_32bit_heap_layout"]

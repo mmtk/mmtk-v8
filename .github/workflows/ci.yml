@@ -24,7 +24,7 @@ jobs:
       - name: Set env
         run: |
           echo "RUSTUP_TOOLCHAIN=nightly-2020-07-08" >> $GITHUB_ENV
-          echo "V8_ROOT=$GITHUB_WORKSPACE/v8-deps" >> $GITHUB_ENV
+          echo "V8_ROOT=$GITHUB_WORKSPACE/repos" >> $GITHUB_ENV
 
       # Be aware that any changes made to the following steps should be made to ci-test.sh as well.
       # MMTk core tests the V8 binding by invoking ci-test.sh.

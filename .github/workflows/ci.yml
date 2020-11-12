@@ -8,7 +8,6 @@ on:
 
 env:
   RUSTUP_TOOLCHAIN: nightly-2020-07-08
-  THE_ROOT: /home/gitlab-runner/actions-runner/_work/mmtk-v8
   V8_ROOT: /home/gitlab-runner/actions-runner/_work/mmtk-v8
 
 jobs:

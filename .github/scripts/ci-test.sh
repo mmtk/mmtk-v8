@@ -1,5 +1,7 @@
 set -xe
 
+. $(dirname "$0")/common.sh
+
 CUR=$(dirname "$0")
 
 $CUR/ci-setup.sh

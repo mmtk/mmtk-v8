@@ -1,5 +1,7 @@
 set -xe
 
+. $(dirname "$0")/common.sh
+
 # clean-up the previously created V8 directories
 cd $V8_ROOT
 rm -rf v8

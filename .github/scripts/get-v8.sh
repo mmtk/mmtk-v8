@@ -20,6 +20,6 @@ gclient
 fetch v8
 # Test with a specific revision.
 # TODO: We should have a better way of specifying version.
-git checkout -C v8 $V8_VERSION
+git -C v8 checkout $V8_VERSION
 
 gclient sync

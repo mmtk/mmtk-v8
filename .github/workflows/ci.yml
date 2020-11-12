@@ -8,7 +8,7 @@ on:
 
 env:
   RUSTUP_TOOLCHAIN: nightly-2020-07-08
-  V8_ROOT: /home/gitlab-runner/actions-runner/_work/mmtk-v8
+  V8_ROOT: $GITHUB_WORKSPACE/v8-deps
 
 jobs:
   test:
@@ -40,6 +40,8 @@ jobs:
       - name: Build V8 with MMTk
         run: ./.github/scripts/build-v8.sh
       
+      # The following two steps are currently failing, so they are not included in ci-test.sh.
+      # Once they pass, we should add them to ci-test.sh      
       - name: Run V8 regression Tests
         run: ./.github/scripts/run-regress.sh
         continue-on-error: true

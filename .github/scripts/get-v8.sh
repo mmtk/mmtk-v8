@@ -18,9 +18,8 @@ export PATH=$V8_ROOT/depot_tools:$PATH
 # fetch v8 and update dependencies
 gclient
 fetch v8
-gclient sync
-
 # Test with a specific revision.
 # TODO: We should have a better way of specifying version.
-cd v8
-git checkout dd80f2e4cf4fd254c389d6fee58dc8d44d84fed0
+git checkout -C v8 $V8_VERSION
+
+gclient sync

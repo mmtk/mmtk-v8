@@ -1,6 +1,9 @@
 set -xe
 
+. $(dirname "$0")/common.sh
+
 # clean-up the previously created V8 directories
+mkdir -p $V8_ROOT
 cd $V8_ROOT
 rm -rf v8
 rm -rf depot_tools
@@ -15,4 +18,6 @@ export PATH=$V8_ROOT/depot_tools:$PATH
 # fetch v8 and update dependencies
 gclient
 fetch v8
+git -C v8 checkout $V8_VERSION
+
 gclient sync

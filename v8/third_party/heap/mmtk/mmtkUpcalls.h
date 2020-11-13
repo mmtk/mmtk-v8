@@ -3,6 +3,6 @@
 
 #include "mmtk.h"
 
-extern V8_Upcalls mmtk_upcalls;
+extern V8_Upcalls v8_upcalls;
 
 #endif /* MMTKUPCALLS_H */

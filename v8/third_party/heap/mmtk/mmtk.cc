@@ -40,7 +40,7 @@ thread_local BumpAllocator* tph_mutator_ = nullptr;
 
 std::vector<TPHData*>* tph_data_list = new std::vector<TPHData*>();
 
-extern V8_Upcalls mmtk_upcalls;
+extern V8_Upcalls v8_upcalls;
 
 TPHData* get_tph_data(Heap* tph) {
   for (size_t i = 0; i < tph_data_list->size(); i++)
@@ -79,7 +79,7 @@ std::unique_ptr<Heap> Heap::New(v8::internal::Isolate* isolate) {
   // MMTK current default maximum heap size is 1GB.
   printf("New Isolate: %lx\n", (unsigned long) isolate);
   const size_t GB = 1u << 30;
-  MMTk_Heap new_heap = v8_new_heap(&mmtk_upcalls, GB);    
+  MMTk_Heap new_heap = v8_new_heap(&v8_upcalls, GB);    
   tph_mutator_ = reinterpret_cast<BumpAllocator*>(bind_mutator(new_heap, &tph_mutator_));
   // FIXME
   code_range_ = base::AddressRegion(0x60000000, (0xb0000000- 0x60000000)); // isolate->AddCodeRange(code_range_.begin(), code_range_.size());

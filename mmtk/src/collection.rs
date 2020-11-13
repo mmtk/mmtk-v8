@@ -5,26 +5,26 @@ use mmtk::scheduler::GCWorker;
 use mmtk::scheduler::gc_works::ProcessEdgesWork;
 
 use V8;
-use UPCALLS;
+use V8_UPCALLS;
 
 pub struct VMCollection {}
 
 impl Collection<V8> for VMCollection {
     fn stop_all_mutators<E: ProcessEdgesWork<VM=V8>>(tls: OpaquePointer) {
         unsafe {
-            ((*UPCALLS).stop_all_mutators)(tls);
+            ((*V8_UPCALLS).stop_all_mutators)(tls);
         }
     }
 
     fn resume_mutators(tls: OpaquePointer) {
         unsafe {
-            ((*UPCALLS).resume_mutators)(tls);
+            ((*V8_UPCALLS).resume_mutators)(tls);
         }
     }
 
     fn block_for_gc(_tls: OpaquePointer) {
         unsafe {
-            ((*UPCALLS).block_for_gc)();
+            ((*V8_UPCALLS).block_for_gc)();
         }
     }
 
@@ -35,7 +35,7 @@ impl Collection<V8> for VMCollection {
             std::ptr::null_mut()
         };
         unsafe {
-            ((*UPCALLS).spawn_worker_thread)(tls, ctx_ptr as usize as _);
+            ((*V8_UPCALLS).spawn_worker_thread)(tls, ctx_ptr as usize as _);
         }
     }
 

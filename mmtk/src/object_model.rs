@@ -3,22 +3,32 @@ use mmtk::AllocationSemantics;
 use mmtk::CopyContext;
 use mmtk::util::{Address, ObjectReference};
 use std::sync::atomic::{AtomicU8};
-use super::UPCALLS;
+use super::V8_UPCALLS;
 use V8;
 
 pub struct VMObjectModel {}
 
 impl ObjectModel<V8> for VMObjectModel {
-    #[cfg(target_pointer_width = "64")]
     const GC_BYTE_OFFSET: usize = 56;
-    #[cfg(target_pointer_width = "32")]
-    const GC_BYTE_OFFSET: usize = 0;
+    
     fn get_gc_byte(o: ObjectReference) -> &'static AtomicU8 {
-       unimplemented!()
+        assert_eq!(cfg!(target_pointer_width = "32"), false);
+        unsafe {
+            &*(o.to_address() + Self::GC_BYTE_OFFSET / 8).to_ptr::<AtomicU8>()
+        }
     }
 
     fn copy(from: ObjectReference, allocator: AllocationSemantics, copy_context: &mut impl CopyContext) -> ObjectReference {
-        unimplemented!()
+        let bytes = get_current_size(from);
+        let dst = copy_context.alloc_copy(from, bytes, ::std::mem::size_of::<usize>(), 0, allocator);
+        // Copy
+        let src = from.to_address();
+        for i in 0..bytes {
+            unsafe { (dst + i).store((src + i).load::<u8>()) };
+        }
+        let to_obj = unsafe { dst.to_object_reference() };
+        copy_context.post_copy(to_obj, unsafe { Address::zero() }, bytes, allocator);
+        to_obj
     }
 
     fn copy_to(from: ObjectReference, to: ObjectReference, region: Address) -> Address {
@@ -42,7 +52,7 @@ impl ObjectModel<V8> for VMObjectModel {
     }
 
     fn get_current_size(object: ObjectReference) -> usize {
-        unimplemented!()
+        unsafe { ((*V8_UPCALLS).get_object_size)(from) }
     }
 
     fn get_next_object(object: ObjectReference) -> ObjectReference {
@@ -115,7 +125,7 @@ impl ObjectModel<V8> for VMObjectModel {
 
     fn dump_object(object: ObjectReference) {
         unsafe {
-            ((*UPCALLS).dump_object)(object);
+            ((*V8_UPCALLS).dump_object)(object);
         }
     }
 

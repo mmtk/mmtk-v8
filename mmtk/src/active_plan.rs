@@ -4,7 +4,7 @@ use mmtk::vm::ActivePlan;
 use mmtk::util::OpaquePointer;
 use V8;
 use SINGLETON;
-use super::UPCALLS;
+use super::V8_UPCALLS;
 use std::sync::Mutex;
 
 pub struct VMActivePlan<> {}
@@ -15,17 +15,17 @@ impl ActivePlan<V8> for VMActivePlan {
     }
 
     fn worker(tls: OpaquePointer) -> &'static mut GCWorker<V8> {
-        let c = unsafe { ((*UPCALLS).active_collector)(tls) };
+        let c = unsafe { ((*V8_UPCALLS).active_collector)(tls) };
         assert!(!c.is_null());
         unsafe { &mut *c }
     }
 
     unsafe fn is_mutator(tls: OpaquePointer) -> bool {
-        ((*UPCALLS).is_mutator)(tls)
+        ((*V8_UPCALLS).is_mutator)(tls)
     }
 
     unsafe fn mutator(tls: OpaquePointer) -> &'static mut <SelectedPlan<V8> as Plan>::Mutator {
-        let m = ((*UPCALLS).get_mmtk_mutator)(tls);
+        let m = ((*V8_UPCALLS).get_mmtk_mutator)(tls);
         &mut *m
     }
 
@@ -35,14 +35,14 @@ impl ActivePlan<V8> for VMActivePlan {
 
     fn reset_mutator_iterator() {
         unsafe {
-            ((*UPCALLS).reset_mutator_iterator)();
+            ((*V8_UPCALLS).reset_mutator_iterator)();
         }
     }
 
     fn get_next_mutator() -> Option<&'static mut <SelectedPlan<V8> as Plan>::Mutator> {
         let _guard = MUTATOR_ITERATOR_LOCK.lock().unwrap();
         unsafe {
-            let m = ((*UPCALLS).get_next_mutator)();
+            let m = ((*V8_UPCALLS).get_next_mutator)();
             if m.is_null() {
                 None
             } else {

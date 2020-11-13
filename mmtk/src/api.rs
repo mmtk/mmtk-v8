@@ -9,14 +9,14 @@ use mmtk::scheduler::GCWorker;
 use mmtk::MMTK;
 
 use V8;
-use UPCALLS;
+use V8_UPCALLS;
 use V8_Upcalls;
 
 #[no_mangle]
 pub extern "C" fn v8_new_heap(calls: *const V8_Upcalls, heap_size: usize) 
     -> *mut c_void {
     unsafe { 
-        UPCALLS = calls;
+        V8_UPCALLS = calls;
     };
     let mmtk: Box<MMTK<V8>> = Box::new(MMTK::new());
     let mmtk: *mut MMTK<V8> = Box::into_raw(mmtk);

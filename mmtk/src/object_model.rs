@@ -42,7 +42,7 @@ impl ObjectModel<V8> for VMObjectModel {
         }
     }
 
-    fn ref_to_address(object: ObjectReference) {
+    fn ref_to_address(object: ObjectReference) -> Address {
         unimplemented!()
     }
 }

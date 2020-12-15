@@ -15,10 +15,6 @@ impl Scanning<V8> for VMScanning {
         unimplemented!()
     }
 
-    fn reset_thread_counter() {
-        unimplemented!()
-    }
-
     fn notify_initial_thread_scan_complete(_partial_scan: bool, _tls: OpaquePointer) {
         unimplemented!()
     }

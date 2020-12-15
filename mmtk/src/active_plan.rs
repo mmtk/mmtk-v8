@@ -14,7 +14,7 @@ impl ActivePlan<V8> for VMActivePlan {
         &SINGLETON.plan
     }
 
-    fn worker(tls: OpaquePointer) -> &'static mut GCWorker<V8> {
+    unsafe fn worker(tls: OpaquePointer) -> &'static mut GCWorker<V8> {
         let c = unsafe { ((*UPCALLS).active_collector)(tls) };
         assert!(!c.is_null());
         unsafe { &mut *c }
@@ -27,10 +27,6 @@ impl ActivePlan<V8> for VMActivePlan {
     unsafe fn mutator(tls: OpaquePointer) -> &'static mut <SelectedPlan<V8> as Plan>::Mutator {
         let m = ((*UPCALLS).get_mmtk_mutator)(tls);
         &mut *m
-    }
-
-    fn collector_count() -> usize {
-        unimplemented!()
     }
 
     fn reset_mutator_iterator() {

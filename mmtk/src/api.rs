@@ -47,9 +47,9 @@ pub extern "C" fn alloc(mutator: &mut Mutator<SelectedPlan<V8>>, size: usize,
 }
 
 #[no_mangle]
-pub extern "C" fn post_alloc(mutator: &mut Mutator<SelectedPlan<V8>>, refer: ObjectReference, type_refer: ObjectReference,
+pub extern "C" fn post_alloc(mutator: &mut Mutator<SelectedPlan<V8>>, refer: ObjectReference,
                                         bytes: usize, semantics: AllocationSemantics) {
-    memory_manager::post_alloc::<V8>(mutator, refer, type_refer, bytes, semantics)
+    memory_manager::post_alloc::<V8>(mutator, refer, bytes, semantics)
 }
 
 #[no_mangle]

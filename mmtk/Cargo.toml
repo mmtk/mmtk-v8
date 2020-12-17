@@ -28,8 +28,7 @@ mmtk = { git = "ssh://git@github.com/mmtk/mmtk-core.git", rev = "a026d47f26b1351
 # mmtk = { path = "../repos/mmtk-core" }
 
 [features]
-default = ["code_space", "ro_space", "force_32bit_heap_layout"]
+default = ["code_space", "ro_space"]
 nogc = ["mmtk/nogc"]
 code_space = ["mmtk/code_space"]
 ro_space = ["mmtk/ro_space"]
-force_32bit_heap_layout = ["mmtk/force_32bit_heap_layout"]

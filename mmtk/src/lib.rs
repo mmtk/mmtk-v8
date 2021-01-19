@@ -12,7 +12,8 @@ use mmtk::vm::VMBinding;
 use mmtk::util::OpaquePointer;
 use mmtk::MMTK;
 use mmtk::util::ObjectReference;
-use mmtk::{Plan, SelectedPlan};
+use mmtk::Plan;
+use mmtk::Mutator;
 use mmtk::scheduler::GCWorker;
 use libc::c_void;
 mod object_archive;
@@ -30,7 +31,7 @@ pub struct V8_Upcalls {
     pub spawn_worker_thread: extern "C" fn(tls: OpaquePointer, ctx: *mut GCWorker<V8>),
     pub block_for_gc: extern "C" fn(),
     pub active_collector: extern "C" fn(tls: OpaquePointer) -> *mut GCWorker<V8>,
-    pub get_next_mutator: extern "C" fn() -> *mut <SelectedPlan<V8> as Plan>::Mutator,
+    pub get_next_mutator: extern "C" fn() -> *mut Mutator<V8>,
     pub reset_mutator_iterator: extern "C" fn(),
     pub compute_static_roots: extern "C" fn(trace: *mut c_void, tls: OpaquePointer),
     pub compute_global_roots: extern "C" fn(trace: *mut c_void, tls: OpaquePointer),
@@ -38,7 +39,7 @@ pub struct V8_Upcalls {
     pub scan_object: extern "C" fn(trace: *mut c_void, object: ObjectReference, tls: OpaquePointer),
     pub dump_object: extern "C" fn(object: ObjectReference),
     pub get_object_size: extern "C" fn(object: ObjectReference) -> usize,
-    pub get_mmtk_mutator: extern "C" fn(tls: OpaquePointer) -> *mut <SelectedPlan<V8> as Plan>::Mutator,
+    pub get_mmtk_mutator: extern "C" fn(tls: OpaquePointer) -> *mut Mutator<V8>,
     pub is_mutator: extern "C" fn(tls: OpaquePointer) -> bool,
 }
 
@@ -58,5 +59,10 @@ impl VMBinding for V8 {
 }
 
 lazy_static! {
-    pub static ref SINGLETON: MMTK<V8> = MMTK::new();
+    pub static ref SINGLETON: MMTK<V8> = {
+        #[cfg(feature = "nogc")]
+        std::env::set_var("MMTK_PLAN", "NoGC");
+
+        MMTK::new()
+    };
 }

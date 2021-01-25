@@ -29,10 +29,6 @@ impl ActivePlan<V8> for VMActivePlan {
         &mut *m
     }
 
-    fn collector_count() -> usize {
-        unimplemented!()
-    }
-
     fn reset_mutator_iterator() {
         unsafe {
             ((*V8_UPCALLS).reset_mutator_iterator)();

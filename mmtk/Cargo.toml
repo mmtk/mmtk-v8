@@ -1,6 +1,6 @@
 [package]
 name = "mmtk_v8"
-version = "0.0.1"
+version = "0.2.0"
 authors = [" <>"]
 
 [lib]
@@ -15,8 +15,15 @@ lto = true
 libc = "0.2"
 lazy_static = "1.1"
 log = "*"
-# mmtk = { git = "ssh://git@github.com/mmtk/mmtk-core.git", rev = "5cd2407424061db66cdb8573fac30704b948a11c" }
 
+# Be very careful to commit any changes to the following mmtk dependency, as our CI scripts (including mmtk-core CI)
+# rely on matching these lines to modify them: e.g. change ssh to https with token or comment out the git dependency
+# and use the local path.
+# These changes are safe:
+# - change branch
+# - change repo name
+# But other changes including adding/removing whitespaces in commented lines may break the CI.
+mmtk = { git = "ssh://git@github.com/mmtk/mmtk-core.git", rev = "7a0dde67e8f56a59736a1a925b18bf7f81b77f51" }
 # Uncomment the following and fix the path to mmtk-core to build locally
 mmtk = { path = "../../mmtk-core" }
 
@@ -25,4 +32,3 @@ default = ["code_space", "ro_space"]
 nogc = ["mmtk/nogc"]
 code_space = ["mmtk/code_space"]
 ro_space = ["mmtk/ro_space"]
-force_32bit_heap_layout = ["mmtk/force_32bit_heap_layout"]

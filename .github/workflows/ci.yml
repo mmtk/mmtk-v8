@@ -6,11 +6,6 @@ on:
     branches:
       - master
 
-env:
-  RUSTUP_TOOLCHAIN: nightly-2020-07-08
-  THE_ROOT: /home/gitlab-runner/actions-runner/_work/mmtk-v8
-  V8_ROOT: /home/gitlab-runner/actions-runner/_work/mmtk-v8
-
 jobs:
   test:
     runs-on: [self-hosted, linux, freq-scaling-on]
@@ -26,8 +21,16 @@ jobs:
       - name: Set credential for cargo dependency
         run: sed -i 's/ssh:\/\/git@github.com\/mmtk/https:\/\/javadamiri:${{ secrets.CI_ACCESS_TOKEN }}@github.com\/mmtk/g' mmtk/Cargo.toml
       
+      - name: Set env vars
+        run: |
+          echo "RUSTUP_TOOLCHAIN=`cat mmtk/rust-toolchain`" >> $GITHUB_ENV
+          echo "V8_ROOT=$GITHUB_WORKSPACE/v8_deps" >> $GITHUB_ENV
       - name: Setup Environments
         run: ./.github/scripts/ci-setup.sh
+
+      # Be aware that any changes made to the following steps should be made to ci-test.sh as well.
+      # MMTk core tests the V8 binding by invoking ci-test.sh.
+
       
       - name: Build MMTk NOGC
         run: ./.github/scripts/build-mmtk.sh
@@ -38,6 +41,8 @@ jobs:
       - name: Build V8 with MMTk
         run: ./.github/scripts/build-v8.sh
       
+      # The following two steps are currently failing, so they are not included in ci-test.sh.
+      # Once they pass, we should add them to ci-test.sh      
       - name: Run V8 regression Tests
         run: ./.github/scripts/run-regress.sh
         continue-on-error: true

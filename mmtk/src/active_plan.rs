@@ -1,4 +1,5 @@
-use mmtk::{Plan, SelectedPlan};
+use mmtk::Plan;
+use mmtk::Mutator;
 use mmtk::scheduler::GCWorker;
 use mmtk::vm::ActivePlan;
 use mmtk::util::OpaquePointer;
@@ -10,8 +11,8 @@ use std::sync::Mutex;
 pub struct VMActivePlan<> {}
 
 impl ActivePlan<V8> for VMActivePlan {
-    fn global() -> &'static SelectedPlan<V8> {
-        &SINGLETON.plan
+    fn global() -> &'static dyn Plan<VM=V8> {
+        &*SINGLETON.plan
     }
 
     unsafe fn worker(tls: OpaquePointer) -> &'static mut GCWorker<V8> {
@@ -24,7 +25,7 @@ impl ActivePlan<V8> for VMActivePlan {
         ((*UPCALLS).is_mutator)(tls)
     }
 
-    unsafe fn mutator(tls: OpaquePointer) -> &'static mut <SelectedPlan<V8> as Plan>::Mutator {
+    unsafe fn mutator(tls: OpaquePointer) -> &'static mut Mutator<V8> {
         let m = ((*UPCALLS).get_mmtk_mutator)(tls);
         &mut *m
     }
@@ -35,7 +36,7 @@ impl ActivePlan<V8> for VMActivePlan {
         }
     }
 
-    fn get_next_mutator() -> Option<&'static mut <SelectedPlan<V8> as Plan>::Mutator> {
+    fn get_next_mutator() -> Option<&'static mut Mutator<V8>> {
         let _guard = MUTATOR_ITERATOR_LOCK.lock().unwrap();
         unsafe {
             let m = ((*UPCALLS).get_next_mutator)();

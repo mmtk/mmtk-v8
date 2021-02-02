@@ -1,5 +1,5 @@
 use mmtk::vm::Scanning;
-use mmtk::{Mutator, SelectedPlan, TransitiveClosure};
+use mmtk::{Mutator, TransitiveClosure};
 use mmtk::util::{ObjectReference};
 use mmtk::util::OpaquePointer;
 use mmtk::scheduler::gc_works::ProcessEdgesWork;
@@ -28,7 +28,7 @@ impl Scanning<V8> for VMScanning {
         unimplemented!()
     }
 
-    fn scan_thread_root<W: ProcessEdgesWork<VM=V8>>(mutator: &'static mut Mutator<SelectedPlan<V8>>, _tls: OpaquePointer) {
+    fn scan_thread_root<W: ProcessEdgesWork<VM=V8>>(mutator: &'static mut Mutator<V8>, _tls: OpaquePointer) {
         unimplemented!()
     }
 

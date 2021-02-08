@@ -9,8 +9,7 @@ use V8;
 pub struct VMObjectModel {}
 
 impl ObjectModel<V8> for VMObjectModel {
-    const HAS_GC_BYTE: bool = true;
-    const GC_BYTE_OFFSET: isize = 7;
+    const HAS_GC_BYTE: bool = false;
     
     fn copy(from: ObjectReference, allocator: AllocationSemantics, copy_context: &mut impl CopyContext) -> ObjectReference {
         let bytes = get_current_size(from);
@@ -46,9 +45,7 @@ impl ObjectModel<V8> for VMObjectModel {
     }
 
     fn dump_object(object: ObjectReference) {
-        unsafe {
-            ((*V8_UPCALLS).dump_object)(object);
-        }
+        unimplemented!()
     }
 
     fn ref_to_address(object: ObjectReference) -> Address {

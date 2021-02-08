@@ -20,7 +20,7 @@ impl Scanning<V8> for VMScanning {
     }
 
     fn scan_objects<W: ProcessEdgesWork<VM=V8>>(objects: &[ObjectReference]) {
-        unimplemented!()
+        todo!()
     }
 
     fn scan_thread_roots<W: ProcessEdgesWork<VM=V8>>() {
@@ -28,11 +28,11 @@ impl Scanning<V8> for VMScanning {
     }
 
     fn scan_thread_root<W: ProcessEdgesWork<VM=V8>>(mutator: &'static mut Mutator<SelectedPlan<V8>>, _tls: OpaquePointer) {
-        unimplemented!()
+        todo!()
     }
 
     fn scan_vm_specific_roots<W: ProcessEdgesWork<VM=V8>>() {
-        unimplemented!()
+        todo!()
     }
 
     fn supports_return_barrier() -> bool {

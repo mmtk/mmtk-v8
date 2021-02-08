@@ -12,7 +12,8 @@ use mmtk::vm::VMBinding;
 use mmtk::util::OpaquePointer;
 use mmtk::MMTK;
 use mmtk::util::ObjectReference;
-use mmtk::{Plan, SelectedPlan};
+use mmtk::Plan;
+use mmtk::Mutator;
 use mmtk::scheduler::GCWorker;
 use libc::c_void;
 mod object_archive;
@@ -50,5 +51,10 @@ impl VMBinding for V8 {
 }
 
 lazy_static! {
-    pub static ref SINGLETON: MMTK<V8> = MMTK::new();
+    pub static ref SINGLETON: MMTK<V8> = {
+        #[cfg(feature = "nogc")]
+        std::env::set_var("MMTK_PLAN", "NoGC");
+
+        MMTK::new()
+    };
 }

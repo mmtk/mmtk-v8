@@ -4,7 +4,7 @@ use std::ffi::CStr;
 use mmtk::memory_manager;
 use mmtk::AllocationSemantics;
 use mmtk::util::{ObjectReference, OpaquePointer, Address};
-use mmtk::{Mutator, SelectedPlan};
+use mmtk::Mutator;
 use mmtk::scheduler::GCWorker;
 use mmtk::MMTK;
 
@@ -31,23 +31,23 @@ pub extern "C" fn start_control_collector(mmtk: &mut MMTK<V8>, tls: OpaquePointe
 }
 
 #[no_mangle]
-pub extern "C" fn bind_mutator(mmtk: &'static mut MMTK<V8>, tls: OpaquePointer) -> *mut Mutator<SelectedPlan<V8>> {
+pub extern "C" fn bind_mutator(mmtk: &'static mut MMTK<V8>, tls: OpaquePointer) -> *mut Mutator<V8> {
     Box::into_raw(memory_manager::bind_mutator(mmtk, tls))
 }
 
 #[no_mangle]
-pub extern "C" fn destroy_mutator(mutator: *mut Mutator<SelectedPlan<V8>>) {
+pub extern "C" fn destroy_mutator(mutator: *mut Mutator<V8>) {
     memory_manager::destroy_mutator(unsafe { Box::from_raw(mutator) })
 }
 
 #[no_mangle]
-pub extern "C" fn alloc(mutator: &mut Mutator<SelectedPlan<V8>>, size: usize,
+pub extern "C" fn alloc(mutator: &mut Mutator<V8>, size: usize,
                     align: usize, offset: isize, semantics: AllocationSemantics) -> Address {
     memory_manager::alloc::<V8>(mutator, size, align, offset, semantics)
 }
 
 #[no_mangle]
-pub extern "C" fn post_alloc(mutator: &mut Mutator<SelectedPlan<V8>>, refer: ObjectReference,
+pub extern "C" fn post_alloc(mutator: &mut Mutator<V8>, refer: ObjectReference,
                                         bytes: usize, semantics: AllocationSemantics) {
     memory_manager::post_alloc::<V8>(mutator, refer, bytes, semantics)
 }

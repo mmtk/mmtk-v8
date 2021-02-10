@@ -2,7 +2,7 @@ use mmtk::vm::Collection;
 use mmtk::util::OpaquePointer;
 use mmtk::{MutatorContext};
 use mmtk::scheduler::GCWorker;
-use mmtk::scheduler::gc_works::ProcessEdgesWork;
+use mmtk::scheduler::gc_work::ProcessEdgesWork;
 
 use V8;
 use UPCALLS;

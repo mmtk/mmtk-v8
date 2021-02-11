@@ -2,7 +2,7 @@ use mmtk::vm::Scanning;
 use mmtk::{Mutator, TransitiveClosure};
 use mmtk::util::{ObjectReference};
 use mmtk::util::OpaquePointer;
-use mmtk::scheduler::gc_works::ProcessEdgesWork;
+use mmtk::scheduler::gc_work::ProcessEdgesWork;
 use mmtk::scheduler::GCWorker;
 use V8;
 

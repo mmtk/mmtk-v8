@@ -54,6 +54,10 @@ TPHData* get_tph_data(Heap* tph) {
 }
 
 inline void CheckMutator(Heap* tph) {
+  // if (tph_mutator_ == nullptr) {
+  //   printf("CheckMutator.UNREACHABLE TLS: %lx\n", (unsigned long) &tph_mutator_);
+  //   UNREACHABLE();
+  // }
   TPHData* tph_data_ = get_tph_data(tph);
   if (tph_mutator_ == nullptr) {
     tph_mutator_ = reinterpret_cast<BumpAllocator*>(
@@ -77,7 +81,7 @@ MMTk_Heap GetMMTkHeap(Address object_pointer) {
 
 std::unique_ptr<Heap> Heap::New(v8::internal::Isolate* isolate) {
   // MMTK current default maximum heap size is 1GB.
-  printf("New Isolate: %lx\n", (unsigned long) isolate);
+  printf("New Isolate: %lx, TLS: %lx\n", (unsigned long) isolate, (unsigned long) &tph_mutator_);
   const size_t GB = 1u << 30;
   MMTk_Heap new_heap = v8_new_heap(&v8_upcalls, GB);    
   tph_mutator_ = reinterpret_cast<BumpAllocator*>(bind_mutator(new_heap, &tph_mutator_));

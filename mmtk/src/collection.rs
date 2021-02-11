@@ -11,24 +11,28 @@ pub struct VMCollection {}
 
 impl Collection<V8> for VMCollection {
     fn stop_all_mutators<E: ProcessEdgesWork<VM=V8>>(tls: OpaquePointer) {
+        // TODO (semispace)
         unsafe {
             ((*V8_UPCALLS).stop_all_mutators)(tls);
         }
     }
 
     fn resume_mutators(tls: OpaquePointer) {
+        // TODO (semispace)
         unsafe {
             ((*V8_UPCALLS).resume_mutators)(tls);
         }
     }
 
     fn block_for_gc(_tls: OpaquePointer) {
+        // TODO (semispace)
         unsafe {
             ((*V8_UPCALLS).block_for_gc)();
         }
     }
 
     fn spawn_worker_thread(tls: OpaquePointer, ctx: Option<&GCWorker<V8>>) {
+        // TODO (semispace)
         let ctx_ptr = if let Some(r) = ctx {
             r as *const GCWorker<V8> as *mut GCWorker<V8>
         } else {

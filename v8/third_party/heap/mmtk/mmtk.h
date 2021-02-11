@@ -4,6 +4,8 @@
 #include "src/heap/third-party/heap-api.h"
 #include "src/base/address-region.h"
 #include "src/heap/heap.h"
+#include "src/objects/map.h"
+#include "src/objects/objects-inl.h"
 #include "src/execution/isolate.h"
 #include <stdbool.h>
 #include <stddef.h>
@@ -73,10 +75,18 @@ extern uint8_t  tph_archive_obj_to_space(void* arch, void* obj_ptr);
 typedef struct {
     void (*stop_all_mutators) (void *tls);
     void (*resume_mutators) (void *tls);
+    void (*spawn_collector_thread) (void *tls, void *ctx);
     void (*block_for_gc) ();
+    void* (*active_collector) (void* tls);
+    void* (*get_next_mutator) ();
+    void (*reset_mutator_iterator) ();
     void (*compute_static_roots) (void* trace, void* tls);
     void (*compute_global_roots) (void* trace, void* tls);
     void (*compute_thread_roots) (void* trace, void* tls);
+    void (*scan_object) (void* trace, void* object, void* tls);
+    void (*dump_object) (void* object);
+    size_t (*get_object_size) (void* object);
+    void* (*get_mmtk_mutator) (void* tls);
     bool (*is_mutator) (void* tls);
 } V8_Upcalls;
 

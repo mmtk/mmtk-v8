@@ -12,7 +12,7 @@ impl ObjectModel<V8> for VMObjectModel {
     const HAS_GC_BYTE: bool = false;
     
     fn copy(from: ObjectReference, allocator: AllocationSemantics, copy_context: &mut impl CopyContext) -> ObjectReference {
-        let bytes = get_current_size(from);
+        let bytes = Self::get_current_size(from);
         let dst = copy_context.alloc_copy(from, bytes, ::std::mem::size_of::<usize>(), 0, allocator);
         // Copy
         let src = from.to_address();
@@ -33,7 +33,7 @@ impl ObjectModel<V8> for VMObjectModel {
     }
 
     fn get_current_size(object: ObjectReference) -> usize {
-        unsafe { ((*V8_UPCALLS).get_object_size)(from) }
+        unsafe { ((*V8_UPCALLS).get_object_size)(object) }
     }
 
     fn get_type_descriptor(reference: ObjectReference) -> &'static [i8] {

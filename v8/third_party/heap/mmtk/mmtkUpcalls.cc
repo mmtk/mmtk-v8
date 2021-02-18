@@ -23,15 +23,29 @@ static void v8_spawn_worker_thread(void* tls, void* ctx) {
 
 static void v8_block_for_gc() { UNIMPLEMENTED(); }
 
-static void* v8_active_collector(void* tls) { UNIMPLEMENTED(); }
+// TODO(remove)
+// This function is only used by ActivePlan::worker which is not used anywhere.
+// So, it's redundant and should be removed.
+static void* v8_active_collector(void* tls) { UNREACHABLE(); }
 
-static void* v8_get_mmtk_mutator(void* tls) { UNIMPLEMENTED(); }
+static void* v8_get_mmtk_mutator(void* tls) {
+  DCHECK(tls == reinterpret_cast<void*>(&tph_mutator_));
+  return (void*)tph_mutator_;
+}
 
-static bool v8_is_mutator(void* tls) { return false; }
+static bool v8_is_mutator(void* tls) {
+  return tls == reinterpret_cast<void*>(&tph_mutator_);
+}
 
-static void* v8_get_next_mutator() { UNIMPLEMENTED(); }
+static void* v8_get_next_mutator() {
+  if (mutator_iteration_start) {
+    return (void*)tph_mutator_;
+  } else {
+    return nullptr;
+  }
+}
 
-static void v8_reset_mutator_iterator() { UNIMPLEMENTED(); }
+static void v8_reset_mutator_iterator() { mutator_iteration_start = true; }
 
 static void v8_compute_global_roots(void* trace, void* tls) { UNIMPLEMENTED(); }
 

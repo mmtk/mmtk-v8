@@ -17,6 +17,8 @@
 extern "C" {
 #endif
 
+thread_local BumpAllocator* tph_mutator_ = nullptr;
+
 typedef void* MMTk_Mutator;
 typedef void* MMTk_TraceLocal;
 typedef void* MMTk_Heap;

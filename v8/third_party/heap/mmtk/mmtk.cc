@@ -36,8 +36,6 @@ class BumpAllocator {
 
 base::AddressRegion code_range_;
 
-thread_local BumpAllocator* tph_mutator_ = nullptr;
-
 std::vector<TPHData*>* tph_data_list = new std::vector<TPHData*>();
 
 extern V8_Upcalls v8_upcalls;
@@ -54,16 +52,17 @@ TPHData* get_tph_data(Heap* tph) {
 }
 
 inline void CheckMutator(Heap* tph) {
+  CHECK(tph_mutator_ != nullptr);
   // if (tph_mutator_ == nullptr) {
   //   printf("CheckMutator.UNREACHABLE TLS: %lx\n", (unsigned long) &tph_mutator_);
   //   UNREACHABLE();
   // }
-  TPHData* tph_data_ = get_tph_data(tph);
-  if (tph_mutator_ == nullptr) {
-    tph_mutator_ = reinterpret_cast<BumpAllocator*>(
-      bind_mutator(tph_data_->mmtk_heap(), &tph_mutator_));
-    tph_mutator_->tph_data = tph_data_;
-  }
+  // TPHData* tph_data_ = get_tph_data(tph);
+  // if (tph_mutator_ == nullptr) {
+  //   tph_mutator_ = reinterpret_cast<BumpAllocator*>(
+  //     bind_mutator(tph_data_->mmtk_heap(), &tph_mutator_));
+  //   tph_mutator_->tph_data = tph_data_;
+  // }
 }
 
 MMTk_Heap GetMMTkHeap(Address object_pointer) {

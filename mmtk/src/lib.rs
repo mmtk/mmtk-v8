@@ -1,5 +1,5 @@
-extern crate mmtk;
 extern crate libc;
+extern crate mmtk;
 #[macro_use]
 extern crate lazy_static;
 
@@ -8,21 +8,28 @@ extern crate log;
 
 use std::ptr::null_mut;
 
-use mmtk::vm::VMBinding;
-use mmtk::util::OpaquePointer;
-use mmtk::MMTK;
-use mmtk::util::ObjectReference;
-use mmtk::Plan;
-use mmtk::Mutator;
-use mmtk::scheduler::GCWorker;
 use libc::c_void;
-mod object_archive;
-pub mod scanning;
-pub mod collection;
-pub mod object_model;
+use mmtk::scheduler::GCWorker;
+use mmtk::util::ObjectReference;
+use mmtk::util::OpaquePointer;
+use mmtk::Mutator;
+use mmtk::Plan;
+use mmtk::MMTK;
+use mmtk::{util::Address, vm::VMBinding};
 pub mod active_plan;
-pub mod reference_glue;
 pub mod api;
+pub mod collection;
+mod object_archive;
+pub mod object_model;
+pub mod reference_glue;
+pub mod scanning;
+
+#[repr(C)]
+pub struct NewBuffer {
+    pub ptr: *mut Address,
+    pub capacity: usize,
+}
+type ProcessEdgesFn = *const extern "C" fn(buf: *mut Address, size: usize, cap: usize) -> NewBuffer;
 
 #[repr(C)]
 pub struct V8_Upcalls {
@@ -33,9 +40,8 @@ pub struct V8_Upcalls {
     pub active_collector: extern "C" fn(tls: OpaquePointer) -> *mut GCWorker<V8>,
     pub get_next_mutator: extern "C" fn() -> *mut Mutator<V8>,
     pub reset_mutator_iterator: extern "C" fn(),
-    pub compute_static_roots: extern "C" fn(trace: *mut c_void, tls: OpaquePointer),
-    pub compute_global_roots: extern "C" fn(trace: *mut c_void, tls: OpaquePointer),
-    pub compute_thread_roots: extern "C" fn(trace: *mut c_void, tls: OpaquePointer),
+    pub scan_thread_roots: extern "C" fn(process_edges: ProcessEdgesFn, tls: OpaquePointer),
+    pub scan_other_roots: extern "C" fn(process_edges: ProcessEdgesFn),
     pub scan_object: extern "C" fn(trace: *mut c_void, object: ObjectReference, tls: OpaquePointer),
     pub dump_object: extern "C" fn(object: ObjectReference),
     pub get_object_size: extern "C" fn(object: ObjectReference) -> usize,

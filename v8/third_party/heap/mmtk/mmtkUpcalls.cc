@@ -63,11 +63,13 @@ static void* v8_get_next_mutator() {
 
 static void v8_reset_mutator_iterator() { mutator_iteration_start = true; }
 
-static void v8_compute_global_roots(void* trace, void* tls) { UNIMPLEMENTED(); }
+static void v8_scan_thread_roots(ProcessEdgesFn process_edges, void* tls) {
+  UNIMPLEMENTED();
+}
 
-static void v8_compute_static_roots(void* trace, void* tls) { UNIMPLEMENTED(); }
-
-static void v8_compute_thread_roots(void* trace, void* tls) { UNIMPLEMENTED(); }
+static void v8_scan_other_roots(ProcessEdgesFn process_edges) {
+  UNIMPLEMENTED();
+}
 
 static void v8_scan_object(void* trace, void* object, void* tls) {
   UNIMPLEMENTED();
@@ -85,11 +87,20 @@ static size_t v8_get_object_size(void* object) {
 }
 
 V8_Upcalls v8_upcalls = {
-    v8_stop_all_mutators,      v8_resume_mutators,      v8_spawn_worker_thread,
-    v8_block_for_gc,           v8_active_collector,     v8_get_next_mutator,
-    v8_reset_mutator_iterator, v8_compute_static_roots, v8_compute_global_roots,
-    v8_compute_thread_roots,   v8_scan_object,          v8_dump_object,
-    v8_get_object_size,        v8_get_mmtk_mutator,     v8_is_mutator,
+    v8_stop_all_mutators,
+    v8_resume_mutators,
+    v8_spawn_worker_thread,
+    v8_block_for_gc,
+    v8_active_collector,
+    v8_get_next_mutator,
+    v8_reset_mutator_iterator,
+    v8_scan_thread_roots,
+    v8_scan_other_roots,
+    v8_scan_object,
+    v8_dump_object,
+    v8_get_object_size,
+    v8_get_mmtk_mutator,
+    v8_is_mutator,
 };
 
 }  // namespace third_party_heap

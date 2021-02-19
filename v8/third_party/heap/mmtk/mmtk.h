@@ -88,6 +88,13 @@ extern void* tph_archive_obj_to_isolate(void* arch, void* obj_ptr);
 extern uint8_t tph_archive_obj_to_space(void* arch, void* obj_ptr);
 
 typedef struct {
+    void** buf;
+    size_t cap;
+} NewBuffer;
+
+typedef NewBuffer (*ProcessEdgesFn)(void** buf, size_t len, size_t cap);
+
+typedef struct {
   void (*stop_all_mutators)(void* tls);
   void (*resume_mutators)(void* tls);
   void (*spawn_collector_thread)(void* tls, void* ctx);
@@ -95,9 +102,8 @@ typedef struct {
   void* (*active_collector)(void* tls);
   void* (*get_next_mutator)();
   void (*reset_mutator_iterator)();
-  void (*compute_static_roots)(void* trace, void* tls);
-  void (*compute_global_roots)(void* trace, void* tls);
-  void (*compute_thread_roots)(void* trace, void* tls);
+  void (*scan_thread_roots)(ProcessEdgesFn process_edges, void* tls);
+  void (*scan_other_roots)(ProcessEdgesFn process_edges);
   void (*scan_object)(void* trace, void* object, void* tls);
   void (*dump_object)(void* object);
   size_t (*get_object_size)(void* object);

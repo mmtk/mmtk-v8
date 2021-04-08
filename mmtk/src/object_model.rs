@@ -1,8 +1,8 @@
+use super::UPCALLS;
+use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::*;
 use mmtk::AllocationSemantics;
 use mmtk::CopyContext;
-use mmtk::util::{Address, ObjectReference};
-use super::UPCALLS;
 use V8;
 
 pub struct VMObjectModel {}
@@ -10,7 +10,11 @@ pub struct VMObjectModel {}
 impl ObjectModel<V8> for VMObjectModel {
     const GC_BYTE_OFFSET: isize = 7;
 
-    fn copy(_from: ObjectReference, _allocator: AllocationSemantics, _copy_context: &mut impl CopyContext) -> ObjectReference {
+    fn copy(
+        _from: ObjectReference,
+        _allocator: AllocationSemantics,
+        _copy_context: &mut impl CopyContext,
+    ) -> ObjectReference {
         unimplemented!()
     }
 

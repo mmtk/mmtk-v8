@@ -1,28 +1,27 @@
-use libc::c_void;
 use libc::c_char;
-use std::ffi::CStr;
+use libc::c_void;
 use mmtk::memory_manager;
-use mmtk::AllocationSemantics;
-use mmtk::util::{ObjectReference, OpaquePointer, Address};
-use mmtk::Mutator;
 use mmtk::scheduler::GCWorker;
+use mmtk::util::{Address, ObjectReference, OpaquePointer};
+use mmtk::AllocationSemantics;
+use mmtk::Mutator;
 use mmtk::MMTK;
+use std::ffi::CStr;
 
-use V8;
-use UPCALLS;
 use V8_Upcalls;
+use UPCALLS;
+use V8;
 
 #[no_mangle]
-pub extern "C" fn v8_new_heap(calls: *const V8_Upcalls, heap_size: usize) 
-    -> *mut c_void {
-    unsafe { 
+pub extern "C" fn v8_new_heap(calls: *const V8_Upcalls, heap_size: usize) -> *mut c_void {
+    unsafe {
         UPCALLS = calls;
     };
     let mmtk: Box<MMTK<V8>> = Box::new(MMTK::new());
     let mmtk: *mut MMTK<V8> = Box::into_raw(mmtk);
     memory_manager::gc_init(unsafe { &mut *mmtk }, heap_size);
-    
-   mmtk as *mut c_void
+
+    mmtk as *mut c_void
 }
 
 #[no_mangle]
@@ -31,7 +30,10 @@ pub extern "C" fn start_control_collector(mmtk: &mut MMTK<V8>, tls: OpaquePointe
 }
 
 #[no_mangle]
-pub extern "C" fn bind_mutator(mmtk: &'static mut MMTK<V8>, tls: OpaquePointer) -> *mut Mutator<V8> {
+pub extern "C" fn bind_mutator(
+    mmtk: &'static mut MMTK<V8>,
+    tls: OpaquePointer,
+) -> *mut Mutator<V8> {
     Box::into_raw(memory_manager::bind_mutator(mmtk, tls))
 }
 
@@ -43,14 +45,23 @@ pub extern "C" fn destroy_mutator(mutator: *mut Mutator<V8>) {
 }
 
 #[no_mangle]
-pub extern "C" fn alloc(mutator: &mut Mutator<V8>, size: usize,
-                    align: usize, offset: isize, semantics: AllocationSemantics) -> Address {
+pub extern "C" fn alloc(
+    mutator: &mut Mutator<V8>,
+    size: usize,
+    align: usize,
+    offset: isize,
+    semantics: AllocationSemantics,
+) -> Address {
     memory_manager::alloc::<V8>(mutator, size, align, offset, semantics)
 }
 
 #[no_mangle]
-pub extern "C" fn post_alloc(mutator: &mut Mutator<V8>, refer: ObjectReference,
-                                        bytes: usize, semantics: AllocationSemantics) {
+pub extern "C" fn post_alloc(
+    mutator: &mut Mutator<V8>,
+    refer: ObjectReference,
+    bytes: usize,
+    semantics: AllocationSemantics,
+) {
     memory_manager::post_alloc::<V8>(mutator, refer, bytes, semantics)
 }
 
@@ -60,7 +71,11 @@ pub extern "C" fn will_never_move(object: ObjectReference) -> bool {
 }
 
 #[no_mangle]
-pub extern "C" fn start_worker(mmtk: &'static mut MMTK<V8>, tls: OpaquePointer, worker: &'static mut GCWorker<V8>) {
+pub extern "C" fn start_worker(
+    mmtk: &'static mut MMTK<V8>,
+    tls: OpaquePointer,
+    worker: &'static mut GCWorker<V8>,
+) {
     memory_manager::start_worker::<V8>(tls, worker, mmtk);
 }
 
@@ -91,7 +106,7 @@ pub extern "C" fn scan_region(mmtk: &mut MMTK<V8>) {
 }
 
 #[no_mangle]
-pub extern "C" fn is_live_object(object: ObjectReference) -> bool{
+pub extern "C" fn is_live_object(object: ObjectReference) -> bool {
     object.is_live()
 }
 
@@ -116,17 +131,29 @@ pub extern "C" fn handle_user_collection_request(mmtk: &mut MMTK<V8>, tls: Opaqu
 }
 
 #[no_mangle]
-pub extern "C" fn add_weak_candidate(mmtk: &mut MMTK<V8>, reff: ObjectReference, referent: ObjectReference) {
+pub extern "C" fn add_weak_candidate(
+    mmtk: &mut MMTK<V8>,
+    reff: ObjectReference,
+    referent: ObjectReference,
+) {
     memory_manager::add_weak_candidate(mmtk, reff, referent);
 }
 
 #[no_mangle]
-pub extern "C" fn add_soft_candidate(mmtk: &mut MMTK<V8>, reff: ObjectReference, referent: ObjectReference) {
+pub extern "C" fn add_soft_candidate(
+    mmtk: &mut MMTK<V8>,
+    reff: ObjectReference,
+    referent: ObjectReference,
+) {
     memory_manager::add_soft_candidate(mmtk, reff, referent);
 }
 
 #[no_mangle]
-pub extern "C" fn add_phantom_candidate(mmtk: &mut MMTK<V8>, reff: ObjectReference, referent: ObjectReference) {
+pub extern "C" fn add_phantom_candidate(
+    mmtk: &mut MMTK<V8>,
+    reff: ObjectReference,
+    referent: ObjectReference,
+) {
     memory_manager::add_phantom_candidate(mmtk, reff, referent);
 }
 
@@ -143,14 +170,19 @@ pub extern "C" fn harness_end(mmtk: &'static mut MMTK<V8>, _tls: OpaquePointer) 
 #[no_mangle]
 // We trust the name/value pointer is valid.
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
-pub extern "C" fn process(mmtk: &'static mut MMTK<V8>, name: *const c_char, value: *const c_char) -> bool {
+pub extern "C" fn process(
+    mmtk: &'static mut MMTK<V8>,
+    name: *const c_char,
+    value: *const c_char,
+) -> bool {
     let name_str: &CStr = unsafe { CStr::from_ptr(name) };
     let value_str: &CStr = unsafe { CStr::from_ptr(value) };
     let res = memory_manager::process(
-        mmtk, 
-        name_str.to_str().unwrap(), 
-        value_str.to_str().unwrap());
-    
+        mmtk,
+        name_str.to_str().unwrap(),
+        value_str.to_str().unwrap(),
+    );
+
     res
 }
 

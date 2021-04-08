@@ -1,5 +1,5 @@
-extern crate mmtk;
 extern crate libc;
+extern crate mmtk;
 #[macro_use]
 extern crate lazy_static;
 
@@ -8,20 +8,20 @@ extern crate log;
 
 use std::ptr::null_mut;
 
-use mmtk::vm::VMBinding;
-use mmtk::util::OpaquePointer;
-use mmtk::MMTK;
-use mmtk::util::ObjectReference;
-use mmtk::Mutator;
-use mmtk::scheduler::GCWorker;
 use libc::c_void;
-mod object_archive;
-pub mod scanning;
-pub mod collection;
-pub mod object_model;
+use mmtk::scheduler::GCWorker;
+use mmtk::util::ObjectReference;
+use mmtk::util::OpaquePointer;
+use mmtk::vm::VMBinding;
+use mmtk::Mutator;
+use mmtk::MMTK;
 pub mod active_plan;
-pub mod reference_glue;
 pub mod api;
+pub mod collection;
+mod object_archive;
+pub mod object_model;
+pub mod reference_glue;
+pub mod scanning;
 
 #[repr(C)]
 pub struct V8_Upcalls {

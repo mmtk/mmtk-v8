@@ -1,17 +1,17 @@
-use mmtk::Plan;
-use mmtk::Mutator;
-use mmtk::scheduler::GCWorker;
-use mmtk::vm::ActivePlan;
-use mmtk::util::OpaquePointer;
-use V8;
-use SINGLETON;
 use super::UPCALLS;
+use mmtk::scheduler::GCWorker;
+use mmtk::util::OpaquePointer;
+use mmtk::vm::ActivePlan;
+use mmtk::Mutator;
+use mmtk::Plan;
 use std::sync::Mutex;
+use SINGLETON;
+use V8;
 
-pub struct VMActivePlan<> {}
+pub struct VMActivePlan {}
 
 impl ActivePlan<V8> for VMActivePlan {
-    fn global() -> &'static dyn Plan<VM=V8> {
+    fn global() -> &'static dyn Plan<VM = V8> {
         &*SINGLETON.plan
     }
 

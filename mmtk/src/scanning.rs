@@ -12,7 +12,7 @@ impl Scanning<V8> for VMScanning {
     const SCAN_MUTATORS_IN_SAFEPOINT: bool = false;
     const SINGLE_THREAD_MUTATOR_SCANNING: bool = false;
 
-    fn scan_object<T: TransitiveClosure>(trace: &mut T, object: ObjectReference, tls: OpaquePointer) {
+    fn scan_object<T: TransitiveClosure>(_trace: &mut T, _object: ObjectReference, _tls: OpaquePointer) {
         unimplemented!()
     }
 
@@ -20,7 +20,7 @@ impl Scanning<V8> for VMScanning {
         unimplemented!()
     }
 
-    fn scan_objects<W: ProcessEdgesWork<VM=V8>>(objects: &[ObjectReference], worker: &mut GCWorker<V8>) {
+    fn scan_objects<W: ProcessEdgesWork<VM=V8>>(_objects: &[ObjectReference], _worker: &mut GCWorker<V8>) {
         unimplemented!()
     }
 
@@ -28,7 +28,7 @@ impl Scanning<V8> for VMScanning {
         unimplemented!()
     }
 
-    fn scan_thread_root<W: ProcessEdgesWork<VM=V8>>(mutator: &'static mut Mutator<V8>, _tls: OpaquePointer) {
+    fn scan_thread_root<W: ProcessEdgesWork<VM=V8>>(_mutator: &'static mut Mutator<V8>, _tls: OpaquePointer) {
         unimplemented!()
     }
 

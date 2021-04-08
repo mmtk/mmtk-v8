@@ -99,8 +99,8 @@ impl ObjectArchive {
                 RwLock::new(
                     Vec::with_capacity(INITIAL_ARCHIVE_SIZE)),
             space_list: Vec::with_capacity(INITIAL_ARCHIVE_SIZE),
-            iter_pos: 0 as usize,
-            iter_len: 0 as usize,
+            iter_pos: 0usize,
+            iter_len: 0usize,
         }
     }
 

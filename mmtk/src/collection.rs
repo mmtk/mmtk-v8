@@ -39,7 +39,7 @@ impl Collection<V8> for VMCollection {
         }
     }
 
-    fn prepare_mutator<T: MutatorContext<V8>>(tls: OpaquePointer, m: &T) {
+    fn prepare_mutator<T: MutatorContext<V8>>(_tls: OpaquePointer, _m: &T) {
         unimplemented!()
     }
 }

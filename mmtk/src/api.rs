@@ -36,6 +36,8 @@ pub extern "C" fn bind_mutator(mmtk: &'static mut MMTK<V8>, tls: OpaquePointer) 
 }
 
 #[no_mangle]
+// It is fine we turn the pointer back to box, as we turned a boxed value to the raw pointer in bind_mutator()
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn destroy_mutator(mutator: *mut Mutator<V8>) {
     memory_manager::destroy_mutator(unsafe { Box::from_raw(mutator) })
 }
@@ -139,6 +141,8 @@ pub extern "C" fn harness_end(mmtk: &'static mut MMTK<V8>, _tls: OpaquePointer) 
 }
 
 #[no_mangle]
+// We trust the name/value pointer is valid.
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn process(mmtk: &'static mut MMTK<V8>, name: *const c_char, value: *const c_char) -> bool {
     let name_str: &CStr = unsafe { CStr::from_ptr(name) };
     let value_str: &CStr = unsafe { CStr::from_ptr(value) };

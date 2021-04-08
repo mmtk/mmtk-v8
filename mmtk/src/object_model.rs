@@ -2,7 +2,6 @@ use mmtk::vm::*;
 use mmtk::AllocationSemantics;
 use mmtk::CopyContext;
 use mmtk::util::{Address, ObjectReference};
-use std::sync::atomic::{AtomicU8};
 use super::UPCALLS;
 use V8;
 
@@ -10,24 +9,24 @@ pub struct VMObjectModel {}
 
 impl ObjectModel<V8> for VMObjectModel {
     const GC_BYTE_OFFSET: isize = 7;
-    
-    fn copy(from: ObjectReference, allocator: AllocationSemantics, copy_context: &mut impl CopyContext) -> ObjectReference {
+
+    fn copy(_from: ObjectReference, _allocator: AllocationSemantics, _copy_context: &mut impl CopyContext) -> ObjectReference {
         unimplemented!()
     }
 
-    fn copy_to(from: ObjectReference, to: ObjectReference, region: Address) -> Address {
+    fn copy_to(_from: ObjectReference, _to: ObjectReference, _region: Address) -> Address {
         unimplemented!()
     }
 
-    fn get_reference_when_copied_to(from: ObjectReference, to: Address) -> ObjectReference {
+    fn get_reference_when_copied_to(_from: ObjectReference, _to: Address) -> ObjectReference {
         unimplemented!()
     }
 
-    fn get_current_size(object: ObjectReference) -> usize {
+    fn get_current_size(_object: ObjectReference) -> usize {
         unimplemented!()
     }
 
-    fn get_type_descriptor(reference: ObjectReference) -> &'static [i8] {
+    fn get_type_descriptor(_reference: ObjectReference) -> &'static [i8] {
         unimplemented!()
     }
 
@@ -41,7 +40,7 @@ impl ObjectModel<V8> for VMObjectModel {
         }
     }
 
-    fn ref_to_address(object: ObjectReference) -> Address {
+    fn ref_to_address(_object: ObjectReference) -> Address {
         unimplemented!()
     }
 }

@@ -16,9 +16,9 @@ impl ActivePlan<V8> for VMActivePlan {
     }
 
     unsafe fn worker(tls: OpaquePointer) -> &'static mut GCWorker<V8> {
-        let c = unsafe { ((*UPCALLS).active_collector)(tls) };
+        let c = ((*UPCALLS).active_collector)(tls);
         assert!(!c.is_null());
-        unsafe { &mut *c }
+        &mut *c
     }
 
     unsafe fn is_mutator(tls: OpaquePointer) -> bool {

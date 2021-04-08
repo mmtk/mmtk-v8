@@ -12,7 +12,6 @@ use mmtk::vm::VMBinding;
 use mmtk::util::OpaquePointer;
 use mmtk::MMTK;
 use mmtk::util::ObjectReference;
-use mmtk::Plan;
 use mmtk::Mutator;
 use mmtk::scheduler::GCWorker;
 use libc::c_void;

@@ -1,16 +1,16 @@
-use mmtk::vm::Collection;
-use mmtk::util::OpaquePointer;
-use mmtk::{MutatorContext};
-use mmtk::scheduler::GCWorker;
 use mmtk::scheduler::gc_work::ProcessEdgesWork;
+use mmtk::scheduler::GCWorker;
+use mmtk::util::OpaquePointer;
+use mmtk::vm::Collection;
+use mmtk::MutatorContext;
 
-use V8;
 use UPCALLS;
+use V8;
 
 pub struct VMCollection {}
 
 impl Collection<V8> for VMCollection {
-    fn stop_all_mutators<E: ProcessEdgesWork<VM=V8>>(tls: OpaquePointer) {
+    fn stop_all_mutators<E: ProcessEdgesWork<VM = V8>>(tls: OpaquePointer) {
         unsafe {
             ((*UPCALLS).stop_all_mutators)(tls);
         }
@@ -39,7 +39,7 @@ impl Collection<V8> for VMCollection {
         }
     }
 
-    fn prepare_mutator<T: MutatorContext<V8>>(tls: OpaquePointer, m: &T) {
+    fn prepare_mutator<T: MutatorContext<V8>>(_tls: OpaquePointer, _m: &T) {
         unimplemented!()
     }
 }

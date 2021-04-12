@@ -1,6 +1,6 @@
-use std::sync::RwLock;
 use libc::c_void;
 use mmtk::util::address::Address;
+use std::sync::RwLock;
 
 const INITIAL_ARCHIVE_SIZE: usize = 10000;
 const ADDITIONAL_ARCHIVE_SIZE: usize = 1000;
@@ -12,21 +12,21 @@ pub extern "C" fn tph_archive_new() -> *const c_void {
 
 #[no_mangle]
 pub extern "C" fn tph_archive_delete(arch: *mut c_void) {
-    unsafe { Box::from_raw(arch as *mut ObjectArchive); };
+    unsafe {
+        Box::from_raw(arch as *mut ObjectArchive);
+    };
 }
 
 #[no_mangle]
 pub extern "C" fn tph_archive_iter_reset(arch: *mut c_void) {
-    let mut arch = 
-        unsafe { Box::from_raw(arch as *mut ObjectArchive) };
+    let mut arch = unsafe { Box::from_raw(arch as *mut ObjectArchive) };
     arch.reset_iterator();
     Box::into_raw(arch);
 }
 
 #[no_mangle]
 pub extern "C" fn tph_archive_iter_next(arch: *mut c_void) -> *mut c_void {
-    let mut arch = 
-        unsafe { Box::from_raw(arch as *mut ObjectArchive) };
+    let mut arch = unsafe { Box::from_raw(arch as *mut ObjectArchive) };
     let res = arch.next_object();
     Box::into_raw(arch);
     res.to_mut_ptr()
@@ -34,9 +34,10 @@ pub extern "C" fn tph_archive_iter_next(arch: *mut c_void) -> *mut c_void {
 
 #[no_mangle]
 pub extern "C" fn tph_archive_inner_to_obj(
-        arch: *mut c_void, inner_ptr: *mut c_void) -> *mut c_void {
-    let arch = 
-        unsafe { Box::from_raw(arch as *mut ObjectArchive) };
+    arch: *mut c_void,
+    inner_ptr: *mut c_void,
+) -> *mut c_void {
+    let arch = unsafe { Box::from_raw(arch as *mut ObjectArchive) };
     let res = arch.inner_addr_to_object(Address::from_mut_ptr(inner_ptr));
     Box::into_raw(arch);
     res.to_mut_ptr()
@@ -44,30 +45,33 @@ pub extern "C" fn tph_archive_inner_to_obj(
 
 #[no_mangle]
 pub extern "C" fn tph_archive_obj_to_isolate(
-        arch: *mut c_void, obj_ptr: *mut c_void) -> *mut c_void {
-    let arch = 
-        unsafe { Box::from_raw(arch as *mut ObjectArchive) };
+    arch: *mut c_void,
+    obj_ptr: *mut c_void,
+) -> *mut c_void {
+    let arch = unsafe { Box::from_raw(arch as *mut ObjectArchive) };
     let res = arch.object_to_isolate(Address::from_mut_ptr(obj_ptr));
     Box::into_raw(arch);
     res.to_mut_ptr()
 }
 
 #[no_mangle]
-pub extern "C" fn tph_archive_obj_to_space(
-        arch: *mut c_void, obj_ptr: *mut c_void) -> u8 {
-    let arch = 
-        unsafe { Box::from_raw(arch as *mut ObjectArchive) };
+pub extern "C" fn tph_archive_obj_to_space(arch: *mut c_void, obj_ptr: *mut c_void) -> u8 {
+    let arch = unsafe { Box::from_raw(arch as *mut ObjectArchive) };
     let res = arch.object_to_space(Address::from_mut_ptr(obj_ptr));
     Box::into_raw(arch);
     res
 }
 
 #[no_mangle]
-pub extern "C" fn tph_archive_insert(arch: *mut c_void, obj_ptr: *mut c_void, iso_ptr: *mut c_void, space: u8) {
+pub extern "C" fn tph_archive_insert(
+    arch: *mut c_void,
+    obj_ptr: *mut c_void,
+    iso_ptr: *mut c_void,
+    space: u8,
+) {
     let obj_addr = Address::from_mut_ptr(obj_ptr);
     let iso_addr = Address::from_mut_ptr(iso_ptr);
-    let mut arch = 
-        unsafe { Box::from_raw(arch as *mut ObjectArchive) };
+    let mut arch = unsafe { Box::from_raw(arch as *mut ObjectArchive) };
     arch.insert_object(obj_addr, iso_addr, space);
     Box::into_raw(arch);
 }
@@ -75,8 +79,7 @@ pub extern "C" fn tph_archive_insert(arch: *mut c_void, obj_ptr: *mut c_void, is
 #[no_mangle]
 pub extern "C" fn tph_archive_remove(arch: *mut c_void, obj_ptr: *mut c_void) {
     let obj_addr = Address::from_mut_ptr(obj_ptr);
-    let mut arch = 
-        unsafe { Box::from_raw(arch as *mut ObjectArchive) };
+    let mut arch = unsafe { Box::from_raw(arch as *mut ObjectArchive) };
     arch.remove_object(obj_addr);
     Box::into_raw(arch);
 }
@@ -92,15 +95,11 @@ pub struct ObjectArchive {
 impl ObjectArchive {
     pub fn new() -> ObjectArchive {
         ObjectArchive {
-            sorted_addr_list: 
-                RwLock::new(
-                    Vec::with_capacity(INITIAL_ARCHIVE_SIZE)),
-            isolate_list: 
-                RwLock::new(
-                    Vec::with_capacity(INITIAL_ARCHIVE_SIZE)),
+            sorted_addr_list: RwLock::new(Vec::with_capacity(INITIAL_ARCHIVE_SIZE)),
+            isolate_list: RwLock::new(Vec::with_capacity(INITIAL_ARCHIVE_SIZE)),
             space_list: Vec::with_capacity(INITIAL_ARCHIVE_SIZE),
-            iter_pos: 0 as usize,
-            iter_len: 0 as usize,
+            iter_pos: 0usize,
+            iter_len: 0usize,
         }
     }
 
@@ -117,7 +116,7 @@ impl ObjectArchive {
                 panic!("OA.insert: ISO LOCK ACQ failed with err: {:#?}", err);
             }
         };
-        
+
         assert_eq!(lst.len(), iso_lst.len());
 
         if lst.capacity() == lst.len() {
@@ -128,7 +127,7 @@ impl ObjectArchive {
         match lst.binary_search(&obj_addr.as_usize()) {
             Ok(_) => {
                 debug!("OA.insert: Object {:?} already archived", obj_addr);
-            },
+            }
             Err(idx) => {
                 lst.insert(idx, obj_addr.as_usize());
                 iso_lst.insert(idx, isolate.as_usize());
@@ -152,13 +151,12 @@ impl ObjectArchive {
         };
         assert_eq!(lst.len(), iso_lst.len());
 
-        let idx = 
-            match lst.binary_search(&obj_addr.as_usize()) {
-                Ok(idx) => idx,
-                Err(_) => {
-                    panic!("OA.remove: Object {:?} not archived!", obj_addr);
-                }
-            };
+        let idx = match lst.binary_search(&obj_addr.as_usize()) {
+            Ok(idx) => idx,
+            Err(_) => {
+                panic!("OA.remove: Object {:?} not archived!", obj_addr);
+            }
+        };
         lst.remove(idx);
         iso_lst.remove(idx);
         self.space_list.remove(idx);
@@ -171,11 +169,10 @@ impl ObjectArchive {
                 panic!("OA.inner_addr_to_object: LOCK ACQ failed: {:#?}", err);
             }
         };
-        let idx = 
-            match lst.binary_search(&inner_addr.as_usize()) {
-                Ok(idx) => idx,
-                Err(idx) => idx-1,
-            };
+        let idx = match lst.binary_search(&inner_addr.as_usize()) {
+            Ok(idx) => idx,
+            Err(idx) => idx - 1,
+        };
         unsafe { Address::from_usize(lst[idx]) }
     }
 
@@ -193,11 +190,10 @@ impl ObjectArchive {
             }
         };
         assert_eq!(lst.len(), iso_lst.len());
-        let idx = 
-            match lst.binary_search(&obj_addr.as_usize()) {
-                Ok(idx) => idx,
-                Err(idx) => idx - 1,
-            };
+        let idx = match lst.binary_search(&obj_addr.as_usize()) {
+            Ok(idx) => idx,
+            Err(idx) => idx - 1,
+        };
         unsafe { Address::from_usize(iso_lst[idx]) }
     }
 
@@ -208,14 +204,13 @@ impl ObjectArchive {
                 panic!("OA.object_to_isolate: LST LOCK ACQ failed: {:#?}", err);
             }
         };
-        let idx = 
-            match lst.binary_search(&obj_addr.as_usize()) {
-                Ok(idx) => idx,
-                Err(idx) => idx - 1,
-            };
+        let idx = match lst.binary_search(&obj_addr.as_usize()) {
+            Ok(idx) => idx,
+            Err(idx) => idx - 1,
+        };
         self.space_list[idx]
     }
-    
+
     pub fn reset_iterator(&mut self) {
         let lst = match self.sorted_addr_list.read() {
             Ok(res) => res,
@@ -235,15 +230,16 @@ impl ObjectArchive {
             }
         };
         if self.iter_len != lst.len() {
-            warn!("ObjectArchive changed from {} to {}.",
-                   self.iter_len, lst.len());
+            warn!(
+                "ObjectArchive changed from {} to {}.",
+                self.iter_len,
+                lst.len()
+            );
             self.iter_len = lst.len();
         }
-        self.iter_pos+=1;
+        self.iter_pos += 1;
         if self.iter_pos < lst.len() {
-            unsafe { 
-                Address::from_usize(lst[self.iter_pos]) 
-            }
+            unsafe { Address::from_usize(lst[self.iter_pos]) }
         } else {
             self.iter_pos = 0;
             unsafe { Address::zero() }

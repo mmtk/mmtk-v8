@@ -34,6 +34,9 @@ jobs:
       
       - name: Build MMTk NOGC
         run: ./.github/scripts/build-mmtk.sh
+      
+      - name: Style check Rust
+        run: ./.github/scripts/ci-style.sh
         
       - name: Get V8 Sources
         run: ./.github/scripts/get-v8.sh

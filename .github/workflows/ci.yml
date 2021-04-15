@@ -18,9 +18,6 @@ jobs:
           token: ${{ secrets.CI_ACCESS_TOKEN }}
           submodules: true
       
-      - name: Set credential for cargo dependency
-        run: sed -i 's/ssh:\/\/git@github.com\/mmtk/https:\/\/javadamiri:${{ secrets.CI_ACCESS_TOKEN }}@github.com\/mmtk/g' mmtk/Cargo.toml
-      
       - name: Set env vars
         run: |
           echo "RUSTUP_TOOLCHAIN=`cat mmtk/rust-toolchain`" >> $GITHUB_ENV

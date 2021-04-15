@@ -24,13 +24,6 @@ $ # replace nightly-YYYY-MM-DD with the the toolchain specified in mmtk-dev-env
 $ export RUSTUP_TOOLCHAIN=nightly-YYYY-MM-DD
 ```
 
-You may also need to use ssh-agent to authenticate with github (see [here](https://github.com/rust-lang/cargo/issues/3487) for more info):
-
-```console
-$ eval `ssh-agent`
-$ ssh-add
-```
-
 ### Getting Sources (for MMTk and VM)
 
 First, set environment variables to refer to the root directories for MMTk and V8 respectively (change these to match your preferred locations):

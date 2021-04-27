@@ -241,7 +241,6 @@ impl ObjectArchive {
         if self.iter_pos < lst.len() {
             unsafe { Address::from_usize(lst[self.iter_pos]) }
         } else {
-            self.iter_pos = 0;
             unsafe { Address::zero() }
         }
     }

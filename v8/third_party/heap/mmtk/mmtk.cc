@@ -180,23 +180,17 @@ bool Heap::IsValidHeapObject(HeapObject object) {
   return is_live_object(reinterpret_cast<void*>(object.address()));
 }
 
-// Access to the heap object iterator is assumed to be single-threaded.
-static bool iteration_finished = false;
-
 void Heap::ResetIterator() {
   TPHData* tph_data_ = get_tph_data(this);
   tph_archive_iter_reset(tph_data_->archive());
-  iteration_finished = false;
 }
 
 HeapObject Heap::NextObject() {
-  if (iteration_finished) return HeapObject();
   TPHData* tph_data_ = get_tph_data(this);
   void* obj_addr = tph_archive_iter_next(tph_data_->archive());
   if (obj_addr != nullptr) {
     return HeapObject::FromAddress(reinterpret_cast<Address>(obj_addr));
   } else {
-    iteration_finished = true;
     return HeapObject();
   }
 }

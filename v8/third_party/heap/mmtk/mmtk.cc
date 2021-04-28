@@ -117,6 +117,7 @@ AllocationResult Heap::Allocate(size_t size_in_bytes, AllocationType type, Alloc
   int space = (type == AllocationType::kCode) ? 3 : (type == AllocationType::kReadOnly) ? 4 : (large_object) ? 2 : 0;
   Address result =
       reinterpret_cast<Address>(alloc(tph_mutator_, size_in_bytes, align_bytes, 0, space));
+  if (type == AllocationType::kCode && large_object) space = 5;
   tph_archive_insert(tph_data_->archive(), reinterpret_cast<void*>(result), tph_data_->isolate(), uint8_t(space));
   HeapObject rtn = HeapObject::FromAddress(result);
   return rtn;
@@ -136,6 +137,40 @@ const v8::base::AddressRegion& Heap::GetCodeRange() {
 bool Heap::CollectGarbage() {
   return true;
 }
+
+bool Heap::InSpace(Address address, AllocationSpace space) {
+  switch (space) {
+    case OLD_SPACE: return InOldSpace(address);
+    case CODE_SPACE: return InCodeSpace(address);
+    case LO_SPACE: return InLargeObjectSpace(address);
+    case CODE_LO_SPACE:
+      for (size_t i = 0; i < tph_data_list->size(); i++) {
+        TPHData* tph_data_ = reinterpret_cast<TPHData*>((*tph_data_list)[i]);
+        uint8_t space = tph_archive_obj_to_space(
+              tph_data_->archive(), reinterpret_cast<void*>(address));
+        if (space == 255) continue;
+        if (space == 5) return true;
+        else return false;
+      }
+      UNREACHABLE();
+    case RO_SPACE: return InReadOnlySpace(address);
+    default: return false;
+  }
+}
+
+bool Heap::InOldSpace(Address address) {
+  for (size_t i = 0; i < tph_data_list->size(); i++)
+  {
+    TPHData* tph_data_ = reinterpret_cast<TPHData*>((*tph_data_list)[i]);
+    uint8_t space = tph_archive_obj_to_space(
+          tph_data_->archive(), reinterpret_cast<void*>(address));
+    if (space == 255) continue;
+    if (space == 0) return true;
+    else return false;
+  }
+  UNREACHABLE();
+}
+
 
 bool Heap::InCodeSpace(Address address) {
   for (size_t i = 0; i < tph_data_list->size(); i++)

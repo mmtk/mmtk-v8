@@ -44,7 +44,7 @@ impl ObjectModel<V8> for VMObjectModel {
         }
     }
 
-    fn ref_to_address(_object: ObjectReference) -> Address {
-        unimplemented!()
+    fn ref_to_address(object: ObjectReference) -> Address {
+        unsafe { Address::from_usize(object.to_address().as_usize() & !0b1) }
     }
 }

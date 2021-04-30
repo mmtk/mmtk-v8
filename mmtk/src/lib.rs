@@ -1,3 +1,5 @@
+#![feature(vec_into_raw_parts)]
+
 extern crate libc;
 extern crate mmtk;
 #[macro_use]
@@ -22,6 +24,15 @@ mod object_archive;
 pub mod object_model;
 pub mod reference_glue;
 pub mod scanning;
+use mmtk::util::{Address};
+
+#[repr(C)]
+pub struct NewBuffer {
+    pub ptr: *mut Address,
+    pub capacity: usize,
+}
+
+type ProcessEdgesFn = *const extern "C" fn(buf: *mut Address, size: usize, cap: usize) -> NewBuffer;
 
 #[repr(C)]
 pub struct V8_Upcalls {
@@ -40,6 +51,8 @@ pub struct V8_Upcalls {
     pub get_object_size: extern "C" fn(object: ObjectReference) -> usize,
     pub get_mmtk_mutator: extern "C" fn(tls: OpaquePointer) -> *mut Mutator<V8>,
     pub is_mutator: extern "C" fn(tls: OpaquePointer) -> bool,
+    pub scan_roots: extern "C" fn(process_edges: ProcessEdgesFn),
+    pub scan_objects: extern "C" fn(objects: *const ObjectReference, count: usize, process_edges: ProcessEdgesFn),
 }
 
 pub static mut UPCALLS: *const V8_Upcalls = null_mut();
@@ -59,9 +72,6 @@ impl VMBinding for V8 {
 
 lazy_static! {
     pub static ref SINGLETON: MMTK<V8> = {
-        #[cfg(feature = "nogc")]
-        std::env::set_var("MMTK_PLAN", "NoGC");
-
         MMTK::new()
     };
 }

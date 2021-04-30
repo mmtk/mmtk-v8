@@ -8,7 +8,11 @@ name = "mmtk_v8"
 # be careful - LTO is only allowed for certain crate types
 crate-type = ["cdylib"]
 
+[profile.dev]
+panic = "abort"
+
 [profile.release]
+panic = "abort"
 lto = true
 
 [dependencies]
@@ -27,5 +31,5 @@ mmtk = { git = "https://github.com/mmtk/mmtk-core.git", rev = "c2132e36c0f0db188
 # mmtk = { path = "../repos/mmtk-core" }
 
 [features]
-default = ["mmtk/code_space", "mmtk/ro_space"]
+default = ["mmtk/code_space", "mmtk/ro_space", "mmtk/side_gc_header"]
 nogc = []

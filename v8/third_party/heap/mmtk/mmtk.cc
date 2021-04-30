@@ -8,30 +8,11 @@ namespace v8 {
 namespace internal {
 namespace third_party_heap {
 
-class TPHData {
-    Heap*  v8_tph_;
-    MMTk_Heap mmtk_heap_;
-    v8::internal::Isolate* isolate_;
-    MMTk_Heap_Archive tph_archive_;
 
-  public:
-    Heap* v8_tph() { return v8_tph_; }
-    MMTk_Heap mmtk_heap() { return mmtk_heap_; }
-    v8::internal::Isolate * isolate() { return isolate_; }
-    MMTk_Heap_Archive archive() { return tph_archive_; }
-
-    TPHData(Heap* v8_tph, MMTk_Heap mmtk_heap, Isolate* isolate, MMTk_Heap_Archive tph_archive):
-      v8_tph_(v8_tph), mmtk_heap_(mmtk_heap), isolate_(isolate), tph_archive_(tph_archive) {}
-};
 
 // Data structure required for Rust-MMTK
-class BumpAllocator {
- public:
-  TPHData* tph_data;
-  uintptr_t cursor;
-  uintptr_t limit;
-  void* space;
-};
+
+v8::internal::Heap* v8_heap = nullptr;
 
 
 base::AddressRegion code_range_;
@@ -53,12 +34,15 @@ TPHData* get_tph_data(Heap* tph) {
   UNREACHABLE();
 }
 
+std::vector<BumpAllocator*>* all_mutators = new std::vector<BumpAllocator*>();
+
 inline void CheckMutator(Heap* tph) {
   TPHData* tph_data_ = get_tph_data(tph);
   if (tph_mutator_ == nullptr) {
     tph_mutator_ = reinterpret_cast<BumpAllocator*>(
       bind_mutator(tph_data_->mmtk_heap(), &tph_mutator_));
     tph_mutator_->tph_data = tph_data_;
+    all_mutators->push_back(tph_mutator_);
   }
 }
 
@@ -78,6 +62,8 @@ MMTk_Heap GetMMTkHeap(Address object_pointer) {
 static std::atomic_bool IsolateCreated { false };
 
 std::unique_ptr<Heap> Heap::New(v8::internal::Isolate* isolate) {
+  DCHECK(!v8_heap);
+  v8_heap = isolate->heap();
   // MMTK current default maximum heap size is 1GB.
   auto isolate_created = IsolateCreated.exchange(true);
   DCHECK_WITH_MSG(!isolate_created, "Multiple isolates are not supported.");
@@ -142,6 +128,7 @@ const v8::base::AddressRegion& Heap::GetCodeRange() {
 }
 
 bool Heap::CollectGarbage() {
+  handle_user_collection_request(get_tph_data(this)->mmtk_heap(), (void*) 0);
   return true;
 }
 

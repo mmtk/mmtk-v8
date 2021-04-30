@@ -2,7 +2,7 @@ use mmtk::scheduler::gc_work::ProcessEdgesWork;
 use mmtk::scheduler::GCWorker;
 use mmtk::util::OpaquePointer;
 use mmtk::vm::Collection;
-use mmtk::MutatorContext;
+use mmtk::{MutatorContext, MMTK};
 
 use UPCALLS;
 use V8;
@@ -33,10 +33,15 @@ impl Collection<V8> for VMCollection {
             r as *const GCWorker<V8> as *mut GCWorker<V8>
         } else {
             std::ptr::null_mut()
-        };
-        unsafe {
-            ((*UPCALLS).spawn_worker_thread)(tls, ctx_ptr as usize as _);
-        }
+        } as usize;
+        std::thread::spawn(move || {
+            let mmtk: *mut MMTK<V8> = &*crate::SINGLETON as *const MMTK<V8> as *mut MMTK<V8>;
+            if ctx_ptr == 0 {
+                crate::api::start_control_collector(unsafe { &mut *mmtk }, OpaquePointer::UNINITIALIZED);
+            } else {
+                crate::api::start_worker(unsafe { &mut *mmtk }, OpaquePointer::UNINITIALIZED, unsafe { &mut *(ctx_ptr as *mut GCWorker<V8>) });
+            }
+        });
     }
 
     fn prepare_mutator<T: MutatorContext<V8>>(_tls: OpaquePointer, _m: &T) {

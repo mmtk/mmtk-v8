@@ -20,6 +20,36 @@ typedef void* MMTk_TraceLocal;
 typedef void* MMTk_Heap;
 typedef void* MMTk_Heap_Archive;
 
+
+namespace v8 {
+namespace internal {
+    class Isolate;
+namespace third_party_heap {
+    class Heap;
+class TPHData {
+    Heap*  v8_tph_;
+    MMTk_Heap mmtk_heap_;
+    v8::internal::Isolate* isolate_;
+    MMTk_Heap_Archive tph_archive_;
+
+  public:
+    Heap* v8_tph() { return v8_tph_; }
+    MMTk_Heap mmtk_heap() { return mmtk_heap_; }
+    v8::internal::Isolate * isolate() { return isolate_; }
+    MMTk_Heap_Archive archive() { return tph_archive_; }
+
+    TPHData(Heap* v8_tph, MMTk_Heap mmtk_heap, Isolate* isolate, MMTk_Heap_Archive tph_archive):
+      v8_tph_(v8_tph), mmtk_heap_(mmtk_heap), isolate_(isolate), tph_archive_(tph_archive) {}
+};
+class BumpAllocator {
+ public:
+  TPHData* tph_data;
+  uintptr_t cursor;
+  uintptr_t limit;
+  void* space;
+};
+
+}}}
 /**
  * Allocation
  */
@@ -69,6 +99,16 @@ extern void*    tph_archive_iter_next(void* arch);
 extern void*    tph_archive_inner_to_obj(void* arch, void* inner_ptr);
 extern void*    tph_archive_obj_to_isolate(void* arch, void* obj_ptr);
 extern uint8_t  tph_archive_obj_to_space(void* arch, void* obj_ptr);
+extern int mmtk_in_space(void* mmtk, void* object, size_t space);
+
+extern void release_buffer(void** buffer, size_t len, size_t cap);
+
+typedef struct {
+    void** buf;
+    size_t cap;
+} NewBuffer;
+
+typedef NewBuffer (*ProcessEdgesFn)(void** buf, size_t len, size_t cap);
 
 typedef struct {
     void (*stop_all_mutators) (void *tls);
@@ -86,6 +126,8 @@ typedef struct {
     size_t (*get_object_size) (void* object);
     void* (*get_mmtk_mutator) (void* tls);
     bool (*is_mutator) (void* tls);
+    void (*scan_roots) (ProcessEdgesFn process_edges);
+    void (*scan_objects) (void** objects, size_t count, ProcessEdgesFn process_edges);
 } V8_Upcalls;
 
 /**

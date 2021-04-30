@@ -6,6 +6,7 @@ use mmtk::util::{Address, ObjectReference, OpaquePointer};
 use mmtk::AllocationSemantics;
 use mmtk::Mutator;
 use mmtk::MMTK;
+use mmtk::policy::space::Space;
 use std::ffi::CStr;
 
 use V8_Upcalls;
@@ -13,13 +14,18 @@ use UPCALLS;
 use V8;
 
 #[no_mangle]
+pub unsafe extern "C" fn release_buffer(ptr: *mut Address, length: usize, capacity: usize) {
+    let _vec = Vec::<Address>::from_raw_parts(ptr, length, capacity);
+}
+
+#[no_mangle]
 pub extern "C" fn v8_new_heap(calls: *const V8_Upcalls, heap_size: usize) -> *mut c_void {
     unsafe {
         UPCALLS = calls;
     };
-    let mmtk: Box<MMTK<V8>> = Box::new(MMTK::new());
-    let mmtk: *mut MMTK<V8> = Box::into_raw(mmtk);
-    memory_manager::gc_init(unsafe { &mut *mmtk }, heap_size);
+    let mmtk: *const MMTK<V8> = &*crate::SINGLETON;
+    memory_manager::gc_init(unsafe { &mut *(mmtk as *mut MMTK<V8>) }, heap_size);
+    enable_collection(unsafe { &mut *(mmtk as *mut MMTK<V8>) }, OpaquePointer::UNINITIALIZED);
 
     mmtk as *mut c_void
 }
@@ -38,6 +44,15 @@ pub extern "C" fn bind_mutator(
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn mmtk_in_space(mmtk: &'static MMTK<V8>, object: ObjectReference, space: AllocationSemantics) -> i32 {
+    let unsync = &*mmtk.plan.base().unsync.get();
+    match space {
+        AllocationSemantics::ReadOnly => unsync.ro_space.in_space(object) as _,
+        _ => unreachable!()
+    }
+}
+
+#[no_mangle]
 // It is fine we turn the pointer back to box, as we turned a boxed value to the raw pointer in bind_mutator()
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn destroy_mutator(mutator: *mut Mutator<V8>) {
@@ -52,7 +67,9 @@ pub extern "C" fn alloc(
     offset: isize,
     semantics: AllocationSemantics,
 ) -> Address {
-    memory_manager::alloc::<V8>(mutator, size, align, offset, semantics)
+    let a = memory_manager::alloc::<V8>(mutator, size, align, offset, semantics);
+    unsafe { memory_manager::post_alloc::<V8>(mutator, a.to_object_reference(), size, semantics); }
+    a
 }
 
 #[no_mangle]

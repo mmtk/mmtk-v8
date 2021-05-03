@@ -4,6 +4,14 @@
 #include <condition_variable>
 #include "src/objects/slots-inl.h"
 #include "src/heap/safepoint.h"
+#include "src/codegen/reloc-info.h"
+#include "src/objects/code.h"
+#include "src/objects/code-inl.h"
+#include "src/codegen/assembler-inl.h"
+#include "src/codegen/interface-descriptors.h"
+#include "src/codegen/macro-assembler-inl.h"
+#include "src/codegen/macro-assembler.h"
+#include "src/compiler/code-assembler.h"
 
 namespace v8 {
 namespace internal {
@@ -39,6 +47,7 @@ static void mmtk_block_for_gc() {
   gcInProgress = true;
   std::unique_lock<std::mutex> lock(m);
   cv->wait(lock, []{ return !gcInProgress; });
+  printf("mmtk_block_for_gc end\n");
 }
 
 static void* mmtk_active_collector(void* tls) {
@@ -161,28 +170,40 @@ class MMTkObjectVisitor: public ObjectVisitor {
     }
   }
 
-  void VisitPointers(HeapObject host, ObjectSlot start, ObjectSlot end) override {
+  virtual void VisitPointers(HeapObject host, ObjectSlot start, ObjectSlot end) override {
     for (ObjectSlot p = start; p < end; ++p) {
       ProcessEdge(p);
     }
   }
 
-  void VisitPointers(HeapObject host, MaybeObjectSlot start, MaybeObjectSlot end) override {
+  virtual void VisitPointers(HeapObject host, MaybeObjectSlot start, MaybeObjectSlot end) override {
     for (MaybeObjectSlot p = start; p < end; ++p) {
       ProcessEdge(p);
     }
   }
 
-  void VisitCodeTarget(Code host, RelocInfo* rinfo) final {
-    // Code target = Code::GetCodeFromTargetAddress(rinfo->target_address());
-    // MarkHeapObject(target);
+  virtual void VisitCodeTarget(Code host, RelocInfo* rinfo) override {
+    // We need to pass the location of the root pointer (i.e. the slot) to MMTk. Fake it for now.
+    Code target = Code::GetCodeFromTargetAddress(rinfo->target_address());
+    auto p = new HeapObject(target);
+    buffer_[cursor_++] = (void*) p;
+    if (cursor_ >= cap_) {
+      flush();
+    }
   }
 
-  void VisitEmbeddedPointer(Code host, RelocInfo* rinfo) final {
-    // MarkHeapObject(rinfo->target_object());
+  virtual void VisitEmbeddedPointer(Code host, RelocInfo* rinfo) override {
+    // We need to pass the location of the root pointer (i.e. the slot) to MMTk. Fake it for now.
+    auto p = new HeapObject(rinfo->target_object());
+    buffer_[cursor_++] = (void*) p;
+    if (cursor_ >= cap_) {
+      flush();
+    }
   }
 
-  void VisitMapPointer(HeapObject object) override {}
+  virtual void VisitMapPointer(HeapObject host) override {
+    ProcessEdge(host.map_slot());
+  }
 
  private:
   template<class T>
@@ -211,7 +232,7 @@ class MMTkObjectVisitor: public ObjectVisitor {
 
 static void mmtk_scan_roots(ProcessEdgesFn process_edges) {
   MMTkRootVisitor root_visitor(process_edges);
-  v8_heap->IterateRoots(&root_visitor, base::EnumSet<SkipRoot>{});
+  v8_heap->IterateRoots(&root_visitor, {});
 }
 
 static void mmtk_scan_objects(void** objects, size_t count, ProcessEdgesFn process_edges) {

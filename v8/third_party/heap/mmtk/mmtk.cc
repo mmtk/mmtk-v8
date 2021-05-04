@@ -145,8 +145,15 @@ bool Heap::CollectGarbage() {
   return true;
 }
 
+// Uninitialized space tag
 constexpr AllocationSpace kNoSpace = AllocationSpace(255);
 
+// Checks whether the address is *logically* in the allocation_space.
+// This does not related the real MMTk space that contains the address,
+// but the V8 internal space expected by the runtime.
+//
+// TODO: Currently we record the space tag for each object. In the future we
+// need to link each allocation_space to a real MMTk space.
 bool Heap::InSpace(Address address, AllocationSpace allocation_space) {
   for (auto tph_data : *tph_data_list) {
     auto space = AllocationSpace(tph_archive_obj_to_space(tph_data->archive(), reinterpret_cast<void*>(address)));

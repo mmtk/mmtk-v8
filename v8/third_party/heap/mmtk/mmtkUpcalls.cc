@@ -99,90 +99,42 @@ static size_t mmtk_get_object_size(void* object) {
   UNIMPLEMENTED();
 }
 
-class MMTkRootVisitor: public RootVisitor {
+class MMTkEdgeVisitor: public RootVisitor, public ObjectVisitor {
  public:
-  explicit MMTkRootVisitor(ProcessEdgesFn process_edges): process_edges_(process_edges) {
+  explicit MMTkEdgeVisitor(ProcessEdgesFn process_edges): process_edges_(process_edges) {
     NewBuffer buf = process_edges(NULL, 0, 0);
     buffer_ = buf.buf;
     cap_ = buf.cap;
   }
 
-  virtual ~MMTkRootVisitor() {
+  virtual ~MMTkEdgeVisitor() {
     if (cursor_ > 0) flush();
     if (buffer_ != NULL) {
       release_buffer(buffer_, cursor_, cap_);
     }
   }
 
-  void VisitRootPointer(Root root, const char* description, FullObjectSlot p) final {
-    // DCHECK(!MapWord::IsPacked(p.Relaxed_Load().ptr()));
-    ProcessRootEdge(root, p);
+  virtual void VisitRootPointer(Root root, const char* description, FullObjectSlot p) override final {
+    ProcessEdge(p);
   }
 
-  void VisitRootPointers(Root root, const char* description, FullObjectSlot start, FullObjectSlot end) final {
-    for (FullObjectSlot p = start; p < end; ++p) {
-      ProcessRootEdge(root, p);
-    }
+  virtual void VisitRootPointers(Root root, const char* description, FullObjectSlot start, FullObjectSlot end) override final {
+    for (FullObjectSlot p = start; p < end; ++p) ProcessEdge(p);
   }
 
-  virtual void VisitRootPointers(Root root, const char* description, OffHeapObjectSlot start, OffHeapObjectSlot end) {
-    for (OffHeapObjectSlot p = start; p < end; ++p) {
-      ProcessRootEdge(root, p);
-    }
+  virtual void VisitRootPointers(Root root, const char* description, OffHeapObjectSlot start, OffHeapObjectSlot end) override final {
+    for (OffHeapObjectSlot p = start; p < end; ++p) ProcessEdge(p);
   }
 
- private:
-  V8_INLINE void ProcessRootEdge(Root root, FullObjectSlot p) {
-    if (!(*p).IsHeapObject()) return;
-    buffer_[cursor_++] = (void*) p.address();
-    if (cursor_ >= cap_) {
-      flush();
-    }
+  virtual void VisitPointers(HeapObject host, ObjectSlot start, ObjectSlot end) override final {
+    for (ObjectSlot p = start; p < end; ++p) ProcessEdge(p);
   }
 
-  void flush() {
-    if (cursor_ > 0) {
-      NewBuffer buf = process_edges_(buffer_, cursor_, cap_);
-      buffer_ = buf.buf;
-      cap_ = buf.cap;
-      cursor_ = 0;
-    }
+  virtual void VisitPointers(HeapObject host, MaybeObjectSlot start, MaybeObjectSlot end) override final {
+    for (MaybeObjectSlot p = start; p < end; ++p) ProcessEdge(p);
   }
 
-  ProcessEdgesFn process_edges_;
-  void** buffer_ = nullptr;
-  size_t cap_ = 0;
-  size_t cursor_ = 0;
-};
-
-class MMTkObjectVisitor: public ObjectVisitor {
- public:
-  explicit MMTkObjectVisitor(ProcessEdgesFn process_edges): process_edges_(process_edges) {
-    NewBuffer buf = process_edges(NULL, 0, 0);
-    buffer_ = buf.buf;
-    cap_ = buf.cap;
-  }
-
-  virtual ~MMTkObjectVisitor() {
-    if (cursor_ > 0) flush();
-    if (buffer_ != NULL) {
-      release_buffer(buffer_, cursor_, cap_);
-    }
-  }
-
-  virtual void VisitPointers(HeapObject host, ObjectSlot start, ObjectSlot end) override {
-    for (ObjectSlot p = start; p < end; ++p) {
-      ProcessEdge(p);
-    }
-  }
-
-  virtual void VisitPointers(HeapObject host, MaybeObjectSlot start, MaybeObjectSlot end) override {
-    for (MaybeObjectSlot p = start; p < end; ++p) {
-      ProcessEdge(p);
-    }
-  }
-
-  virtual void VisitCodeTarget(Code host, RelocInfo* rinfo) override {
+  virtual void VisitCodeTarget(Code host, RelocInfo* rinfo) override final {
     // We need to pass the location of the root pointer (i.e. the slot) to MMTk. Fake it for now.
     Code target = Code::GetCodeFromTargetAddress(rinfo->target_address());
     auto p = new HeapObject(target);
@@ -192,7 +144,7 @@ class MMTkObjectVisitor: public ObjectVisitor {
     }
   }
 
-  virtual void VisitEmbeddedPointer(Code host, RelocInfo* rinfo) override {
+  virtual void VisitEmbeddedPointer(Code host, RelocInfo* rinfo) override final {
     // We need to pass the location of the root pointer (i.e. the slot) to MMTk. Fake it for now.
     auto p = new HeapObject(rinfo->target_object());
     buffer_[cursor_++] = (void*) p;
@@ -201,7 +153,7 @@ class MMTkObjectVisitor: public ObjectVisitor {
     }
   }
 
-  virtual void VisitMapPointer(HeapObject host) override {
+  virtual void VisitMapPointer(HeapObject host) override final {
     ProcessEdge(host.map_slot());
   }
 
@@ -231,12 +183,12 @@ class MMTkObjectVisitor: public ObjectVisitor {
 };
 
 static void mmtk_scan_roots(ProcessEdgesFn process_edges) {
-  MMTkRootVisitor root_visitor(process_edges);
+  MMTkEdgeVisitor root_visitor(process_edges);
   v8_heap->IterateRoots(&root_visitor, {});
 }
 
 static void mmtk_scan_objects(void** objects, size_t count, ProcessEdgesFn process_edges) {
-  MMTkObjectVisitor visitor(process_edges);
+  MMTkEdgeVisitor visitor(process_edges);
   for (size_t i = 0; i < count; i++) {
     auto ptr = *(objects + i);
     auto obj = HeapObject::FromAddress(((Address) ptr));

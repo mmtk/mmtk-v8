@@ -115,15 +115,15 @@ class MMTkEdgeVisitor: public RootVisitor, public ObjectVisitor {
   }
 
   virtual void VisitRootPointer(Root root, const char* description, FullObjectSlot p) override final {
-    ProcessEdge(p);
+    ProcessRootEdge(root, p);
   }
 
   virtual void VisitRootPointers(Root root, const char* description, FullObjectSlot start, FullObjectSlot end) override final {
-    for (FullObjectSlot p = start; p < end; ++p) ProcessEdge(p);
+    for (FullObjectSlot p = start; p < end; ++p) ProcessRootEdge(root, p);
   }
 
   virtual void VisitRootPointers(Root root, const char* description, OffHeapObjectSlot start, OffHeapObjectSlot end) override final {
-    for (OffHeapObjectSlot p = start; p < end; ++p) ProcessEdge(p);
+    for (OffHeapObjectSlot p = start; p < end; ++p) ProcessRootEdge(root, p);
   }
 
   virtual void VisitPointers(HeapObject host, ObjectSlot start, ObjectSlot end) override final {
@@ -158,6 +158,10 @@ class MMTkEdgeVisitor: public RootVisitor, public ObjectVisitor {
   }
 
  private:
+  V8_INLINE void ProcessRootEdge(Root root, FullObjectSlot p) {
+    ProcessEdge(p);
+  }
+
   template<class T>
   V8_INLINE void ProcessEdge(T p) {
     if (!(*p).IsHeapObject()) return;

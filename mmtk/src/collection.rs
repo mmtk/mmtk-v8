@@ -1,6 +1,6 @@
 use mmtk::scheduler::gc_work::ProcessEdgesWork;
 use mmtk::scheduler::GCWorker;
-use mmtk::util::OpaquePointer;
+use mmtk::util::*;
 use mmtk::vm::Collection;
 use mmtk::{MutatorContext, MMTK};
 
@@ -47,4 +47,14 @@ impl Collection<V8> for VMCollection {
     fn prepare_mutator<T: MutatorContext<V8>>(_tls: OpaquePointer, _m: &T) {
         unimplemented!()
     }
+
+    fn sweep(addr: Address) {
+        unsafe {
+            mmtk_delete_object(addr)
+        }
+    }
+}
+
+extern {
+    fn mmtk_delete_object(addr: Address);
 }

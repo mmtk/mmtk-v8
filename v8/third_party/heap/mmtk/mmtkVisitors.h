@@ -11,6 +11,7 @@
 #include "src/objects/code.h"
 #include "src/objects/code-inl.h"
 #include "src/codegen/assembler-inl.h"
+#include <unordered_set>
 
 
 namespace v8 {
@@ -83,10 +84,14 @@ class MMTkEdgeVisitor: public RootVisitor, public ObjectVisitor {
 
   template<class T>
   V8_INLINE void ProcessEdge(T p) {
-    if (!(*p).IsHeapObject()) return;
-    buffer_[cursor_++] = (void*) p.address();
-    if (cursor_ >= cap_) {
-      flush();
+    HeapObject object;
+    if ((*p).GetHeapObject(&object)) {
+        auto s = new HeapObject(object);
+
+        buffer_[cursor_++] = (void*) s;
+        if (cursor_ >= cap_) {
+          flush();
+        }
     }
   }
 
@@ -104,6 +109,77 @@ class MMTkEdgeVisitor: public RootVisitor, public ObjectVisitor {
   size_t cap_ = 0;
   size_t cursor_ = 0;
 };
+
+
+
+class MMTkHeapVerifier: public RootVisitor, public ObjectVisitor {
+ public:
+  explicit MMTkHeapVerifier() {}
+
+  virtual ~MMTkHeapVerifier() {}
+
+  virtual void VisitRootPointer(Root root, const char* description, FullObjectSlot p) override final {
+    VerifyRootEdge(root, p);
+  }
+
+  virtual void VisitRootPointers(Root root, const char* description, FullObjectSlot start, FullObjectSlot end) override final {
+    for (FullObjectSlot p = start; p < end; ++p) VerifyRootEdge(root, p);
+  }
+
+  virtual void VisitRootPointers(Root root, const char* description, OffHeapObjectSlot start, OffHeapObjectSlot end) override final {
+    for (OffHeapObjectSlot p = start; p < end; ++p) VerifyRootEdge(root, p);
+  }
+
+  virtual void VisitPointers(HeapObject host, ObjectSlot start, ObjectSlot end) override final {
+    for (ObjectSlot p = start; p < end; ++p) VerifyEdge(p);
+  }
+
+  virtual void VisitPointers(HeapObject host, MaybeObjectSlot start, MaybeObjectSlot end) override final {
+    for (MaybeObjectSlot p = start; p < end; ++p) VerifyEdge(p);
+  }
+
+  virtual void VisitCodeTarget(Code host, RelocInfo* rinfo) override final {
+    Code target = Code::GetCodeFromTargetAddress(rinfo->target_address());
+    VerifyHeapObject(0, target);
+  }
+
+  virtual void VisitEmbeddedPointer(Code host, RelocInfo* rinfo) override final {
+    VerifyHeapObject(0, rinfo->target_object());
+  }
+
+  virtual void VisitMapPointer(HeapObject host) override final {
+    VerifyEdge(host.map_slot());
+  }
+
+ private:
+  V8_INLINE void VerifyRootEdge(Root root, FullObjectSlot p) {
+    VerifyEdge(p);
+  }
+
+  template<class T>
+  V8_INLINE void VerifyEdge(T p) {
+    HeapObject object;
+    if ((*p).GetHeapObject(&object)) {
+        VerifyHeapObject(p.address(), object);
+    }
+  }
+
+  V8_INLINE void VerifyHeapObject(Address edge, HeapObject o) {
+    if (marked_objects_.find(o.ptr()) == marked_objects_.end()) {
+        marked_objects_.insert(o.ptr());
+        if (!third_party_heap::Heap::IsValidHeapObject(o)) {
+            printf("Dead edge %p -> %p\n", (void*) edge, (void*) o.ptr());
+        }
+        CHECK(third_party_heap::Heap::IsValidHeapObject(o));
+        o.Iterate(this);
+    }
+  }
+
+  std::unordered_set<Address> marked_objects_;
+};
+
+
+
 
 }
 }

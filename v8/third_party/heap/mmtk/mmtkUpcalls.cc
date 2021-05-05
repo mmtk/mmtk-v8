@@ -20,9 +20,17 @@ SafepointScope* scope;
 static void mmtk_stop_all_mutators(void *tls) {
   printf("mmtk_stop_all_mutators\n");
   scope = new SafepointScope(v8_heap);
+  printf("mmtk_stop_all_mutators: heap verify start\n");
+  MMTkHeapVerifier visitor;
+  v8_heap->IterateRoots(&visitor, {});
+  printf("mmtk_stop_all_mutators: heap verify end\n");
 }
 
 static void mmtk_resume_mutators(void *tls) {
+  printf("mmtk_resume_mutators: heap verify start\n");
+  MMTkHeapVerifier visitor;
+  v8_heap->IterateRoots(&visitor, {});
+  printf("mmtk_resume_mutators: heap verify end\n");
   printf("mmtk_resume_mutators\n");
   delete scope;
   scope = nullptr;

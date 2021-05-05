@@ -178,6 +178,19 @@ HeapObject Heap::NextObject() {
     return HeapObject();
   }
 }
+extern "C" {
+  void mmtk_delete_object(Address addr) {
+    for (auto tph_data : *tph_data_list) {
+      auto space = AllocationSpace(tph_archive_obj_to_space(tph_data->archive(), reinterpret_cast<void*>(addr)));
+      if (space == kNoSpace) continue;
+      tph_archive_remove(tph_data->archive(), (void*) addr);
+      return;
+    }
+    printf("Unknown object %p\n", (void*) addr);
+    UNREACHABLE();
+  }
+
+}
 
 }
 }  // namespace internal

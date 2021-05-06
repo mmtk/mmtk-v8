@@ -29,7 +29,6 @@ pub struct V8_Upcalls {
     pub resume_mutators: extern "C" fn(tls: OpaquePointer),
     pub spawn_worker_thread: extern "C" fn(tls: OpaquePointer, ctx: *mut GCWorker<V8>),
     pub block_for_gc: extern "C" fn(),
-    pub active_collector: extern "C" fn(tls: OpaquePointer) -> *mut GCWorker<V8>,
     pub get_next_mutator: extern "C" fn() -> *mut Mutator<V8>,
     pub reset_mutator_iterator: extern "C" fn(),
     pub compute_static_roots: extern "C" fn(trace: *mut c_void, tls: OpaquePointer),

@@ -1,5 +1,4 @@
 use super::UPCALLS;
-use mmtk::scheduler::GCWorker;
 use mmtk::util::OpaquePointer;
 use mmtk::vm::ActivePlan;
 use mmtk::Mutator;
@@ -13,12 +12,6 @@ pub struct VMActivePlan {}
 impl ActivePlan<V8> for VMActivePlan {
     fn global() -> &'static dyn Plan<VM = V8> {
         &*SINGLETON.plan
-    }
-
-    unsafe fn worker(tls: OpaquePointer) -> &'static mut GCWorker<V8> {
-        let c = ((*UPCALLS).active_collector)(tls);
-        assert!(!c.is_null());
-        &mut *c
     }
 
     unsafe fn is_mutator(tls: OpaquePointer) -> bool {

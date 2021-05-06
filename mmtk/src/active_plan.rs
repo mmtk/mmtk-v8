@@ -1,5 +1,4 @@
 use super::UPCALLS;
-use mmtk::scheduler::GCWorker;
 use mmtk::util::OpaquePointer;
 use mmtk::vm::ActivePlan;
 use mmtk::Mutator;

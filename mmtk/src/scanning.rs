@@ -1,7 +1,7 @@
 use mmtk::scheduler::gc_work::ProcessEdgesWork;
 use mmtk::scheduler::GCWorker;
-use mmtk::util::ObjectReference;
 use mmtk::util::opaque_pointer::*;
+use mmtk::util::ObjectReference;
 use mmtk::vm::Scanning;
 use mmtk::{Mutator, TransitiveClosure};
 use V8;

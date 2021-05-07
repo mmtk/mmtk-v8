@@ -10,8 +10,8 @@ use std::ptr::null_mut;
 
 use libc::c_void;
 use mmtk::scheduler::GCWorker;
-use mmtk::util::ObjectReference;
 use mmtk::util::opaque_pointer::*;
+use mmtk::util::ObjectReference;
 use mmtk::vm::VMBinding;
 use mmtk::Mutator;
 use mmtk::MMTK;

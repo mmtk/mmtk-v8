@@ -1,5 +1,5 @@
-use mmtk::util::ObjectReference;
 use mmtk::util::opaque_pointer::*;
+use mmtk::util::ObjectReference;
 use mmtk::vm::ReferenceGlue;
 use mmtk::TraceLocal;
 use V8;

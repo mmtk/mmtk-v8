@@ -1,5 +1,5 @@
 use mmtk::util::ObjectReference;
-use mmtk::util::OpaquePointer;
+use mmtk::util::opaque_pointer::*;
 use mmtk::vm::ReferenceGlue;
 use mmtk::TraceLocal;
 use V8;
@@ -16,7 +16,7 @@ impl ReferenceGlue<V8> for VMReferenceGlue {
     fn process_reference<T: TraceLocal>(
         _trace: &mut T,
         _reference: ObjectReference,
-        _tls: OpaquePointer,
+        _tls: VMWorkerThread,
     ) -> ObjectReference {
         unimplemented!()
     }

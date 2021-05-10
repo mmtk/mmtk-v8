@@ -5,7 +5,6 @@ use mmtk::util::OpaquePointer;
 use mmtk::vm::Scanning;
 use mmtk::{Mutator, TransitiveClosure};
 use V8;
-use mmtk::scheduler::gc_work::*;
 use mmtk::scheduler::*;
 use crate::*;
 

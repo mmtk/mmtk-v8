@@ -18,20 +18,20 @@ bool gcInProgress = false;
 SafepointScope* scope;
 
 static void mmtk_stop_all_mutators(void *tls) {
-  printf("mmtk_stop_all_mutators\n");
+  fprintf(stderr, "mmtk_stop_all_mutators\n");
   scope = new SafepointScope(v8_heap);
-  printf("mmtk_stop_all_mutators: heap verify start\n");
+  fprintf(stderr, "mmtk_stop_all_mutators: heap verify start\n");
   MMTkHeapVerifier visitor;
   v8_heap->IterateRoots(&visitor, {});
-  printf("mmtk_stop_all_mutators: heap verify end\n");
+  fprintf(stderr, "mmtk_stop_all_mutators: heap verify end\n");
 }
 
 static void mmtk_resume_mutators(void *tls) {
-  printf("mmtk_resume_mutators: heap verify start\n");
+  fprintf(stderr, "mmtk_resume_mutators: heap verify start\n");
   MMTkHeapVerifier visitor;
   v8_heap->IterateRoots(&visitor, {});
-  printf("mmtk_resume_mutators: heap verify end\n");
-  printf("mmtk_resume_mutators\n");
+  fprintf(stderr, "mmtk_resume_mutators: heap verify end\n");
+  fprintf(stderr, "mmtk_resume_mutators\n");
   delete scope;
   scope = nullptr;
   std::unique_lock<std::mutex> lock(m);
@@ -48,7 +48,7 @@ static void mmtk_block_for_gc() {
   gcInProgress = true;
   std::unique_lock<std::mutex> lock(m);
   cv->wait(lock, []{ return !gcInProgress; });
-  printf("mmtk_block_for_gc end\n");
+  fprintf(stderr, "mmtk_block_for_gc end\n");
 }
 
 static void* mmtk_active_collector(void* tls) {
@@ -109,6 +109,7 @@ static void mmtk_scan_objects(void** objects, size_t count, ProcessEdgesFn proce
   MMTkEdgeVisitor visitor(process_edges);
   for (size_t i = 0; i < count; i++) {
     auto ptr = *(objects + i);
+    DCHECK_EQ(((Address) ptr) & 1, 0);
     auto obj = HeapObject::FromAddress(((Address) ptr));
     obj.Iterate(&visitor);
   }

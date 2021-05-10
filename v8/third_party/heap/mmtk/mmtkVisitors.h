@@ -57,20 +57,12 @@ class MMTkEdgeVisitor: public RootVisitor, public ObjectVisitor {
   virtual void VisitCodeTarget(Code host, RelocInfo* rinfo) override final {
     // We need to pass the location of the root pointer (i.e. the slot) to MMTk. Fake it for now.
     Code target = Code::GetCodeFromTargetAddress(rinfo->target_address());
-    auto p = new HeapObject(target);
-    buffer_[cursor_++] = (void*) p;
-    if (cursor_ >= cap_) {
-      flush();
-    }
+    AddEdge(target);
   }
 
   virtual void VisitEmbeddedPointer(Code host, RelocInfo* rinfo) override final {
     // We need to pass the location of the root pointer (i.e. the slot) to MMTk. Fake it for now.
-    auto p = new HeapObject(rinfo->target_object());
-    buffer_[cursor_++] = (void*) p;
-    if (cursor_ >= cap_) {
-      flush();
-    }
+    AddEdge(rinfo->target_object());
   }
 
   virtual void VisitMapPointer(HeapObject host) override final {
@@ -86,12 +78,16 @@ class MMTkEdgeVisitor: public RootVisitor, public ObjectVisitor {
   V8_INLINE void ProcessEdge(T p) {
     HeapObject object;
     if ((*p).GetHeapObject(&object)) {
-        auto s = new HeapObject(object);
+      AddEdge(object);
+    }
+  }
 
-        buffer_[cursor_++] = (void*) s;
-        if (cursor_ >= cap_) {
-          flush();
-        }
+  V8_INLINE void AddEdge(HeapObject o) {
+    HeapObject* edge = new HeapObject();
+    *edge = o;
+    buffer_[cursor_++] = (void*) edge;
+    if (cursor_ >= cap_) {
+      flush();
     }
   }
 
@@ -114,7 +110,8 @@ class MMTkEdgeVisitor: public RootVisitor, public ObjectVisitor {
 
 class MMTkHeapVerifier: public RootVisitor, public ObjectVisitor {
  public:
-  explicit MMTkHeapVerifier() {}
+  explicit MMTkHeapVerifier() {
+  }
 
   virtual ~MMTkHeapVerifier() {}
 
@@ -131,47 +128,47 @@ class MMTkHeapVerifier: public RootVisitor, public ObjectVisitor {
   }
 
   virtual void VisitPointers(HeapObject host, ObjectSlot start, ObjectSlot end) override final {
-    for (ObjectSlot p = start; p < end; ++p) VerifyEdge(p);
+    for (ObjectSlot p = start; p < end; ++p) VerifyEdge(host, p);
   }
 
   virtual void VisitPointers(HeapObject host, MaybeObjectSlot start, MaybeObjectSlot end) override final {
-    for (MaybeObjectSlot p = start; p < end; ++p) VerifyEdge(p);
+    for (MaybeObjectSlot p = start; p < end; ++p) VerifyEdge(host, p);
   }
 
   virtual void VisitCodeTarget(Code host, RelocInfo* rinfo) override final {
     Code target = Code::GetCodeFromTargetAddress(rinfo->target_address());
-    VerifyHeapObject(0, target);
+    VerifyHeapObject(host, 0, target);
   }
 
   virtual void VisitEmbeddedPointer(Code host, RelocInfo* rinfo) override final {
-    VerifyHeapObject(0, rinfo->target_object());
+    VerifyHeapObject(host, 0, rinfo->target_object());
   }
 
   virtual void VisitMapPointer(HeapObject host) override final {
-    VerifyEdge(host.map_slot());
+    VerifyEdge(host, host.map_slot());
   }
 
  private:
   V8_INLINE void VerifyRootEdge(Root root, FullObjectSlot p) {
-    VerifyEdge(p);
+    VerifyEdge(HeapObject(), p);
   }
 
   template<class T>
-  V8_INLINE void VerifyEdge(T p) {
+  V8_INLINE void VerifyEdge(HeapObject host, T p) {
     HeapObject object;
     if ((*p).GetHeapObject(&object)) {
-        VerifyHeapObject(p.address(), object);
+      VerifyHeapObject(host, p.address(), object);
     }
   }
 
-  V8_INLINE void VerifyHeapObject(Address edge, HeapObject o) {
+  V8_INLINE void VerifyHeapObject(HeapObject host, Address edge, HeapObject o) {
     if (marked_objects_.find(o.ptr()) == marked_objects_.end()) {
-        marked_objects_.insert(o.ptr());
-        if (!third_party_heap::Heap::IsValidHeapObject(o)) {
-            printf("Dead edge %p -> %p\n", (void*) edge, (void*) o.ptr());
-        }
-        CHECK(third_party_heap::Heap::IsValidHeapObject(o));
-        o.Iterate(this);
+      marked_objects_.insert(o.ptr());
+      if (!third_party_heap::Heap::IsValidHeapObject(o)) {
+        printf("Dead edge %p.%p -> %p\n", (void*) host.ptr(), (void*) edge, (void*) o.ptr());
+      }
+      CHECK(third_party_heap::Heap::IsValidHeapObject(o));
+      o.Iterate(this);
     }
   }
 

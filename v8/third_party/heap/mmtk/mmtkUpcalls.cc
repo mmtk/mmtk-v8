@@ -4,6 +4,8 @@
 #include <condition_variable>
 #include "src/objects/slots-inl.h"
 #include "src/heap/safepoint.h"
+#include "src/deoptimizer/deoptimizer.h"
+#include "src/execution/frames-inl.h"
 #include "mmtkVisitors.h"
 
 namespace v8 {
@@ -32,6 +34,17 @@ static void mmtk_resume_mutators(void *tls) {
   v8_heap->IterateRoots(&visitor, {});
   fprintf(stderr, "mmtk_resume_mutators: heap verify end\n");
   fprintf(stderr, "mmtk_resume_mutators\n");
+
+  v8_heap->isolate()->inner_pointer_to_code_cache()->Flush();
+  // The stub caches are not traversed during GC; clear them to force
+  // their lazy re-initialization. This must be done after the
+  // GC, because it relies on the new address of certain old space
+  // objects (empty string, illegal builtin).
+  v8_heap->isolate()->load_stub_cache()->Clear();
+  v8_heap->isolate()->store_stub_cache()->Clear();
+  // Some code objects were marked for deoptimization during the GC.
+  // Deoptimizer::DeoptimizeMarkedCode(v8_heap->isolate());
+
   delete scope;
   scope = nullptr;
   std::unique_lock<std::mutex> lock(m);

@@ -1,4 +1,4 @@
-use mmtk::scheduler::gc_work::ProcessEdgesWork;
+use mmtk::scheduler::ProcessEdgesWork;
 use mmtk::scheduler::GCWorker;
 use mmtk::util::OpaquePointer;
 use mmtk::vm::Collection;

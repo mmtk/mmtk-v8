@@ -19,7 +19,7 @@ namespace internal {
 namespace third_party_heap {
 
 
-class MMTkEdgeVisitor: public RootVisitor, public ObjectVisitor {
+class MMTkEdgeVisitor: public RootVisitor, public ObjectVisitor, public WeakObjectRetainer {
  public:
   explicit MMTkEdgeVisitor(ProcessEdgesFn process_edges): process_edges_(process_edges) {
     NewBuffer buf = process_edges(NULL, 0, 0);
@@ -67,6 +67,12 @@ class MMTkEdgeVisitor: public RootVisitor, public ObjectVisitor {
 
   virtual void VisitMapPointer(HeapObject host) override final {
     ProcessEdge(host.map_slot());
+  }
+
+  virtual Object RetainAs(Object object) override final {
+    HeapObject heap_object = HeapObject::cast(object);
+    AddEdge(heap_object);
+    return object;
   }
 
  private:
@@ -148,6 +154,20 @@ class MMTkHeapVerifier: public RootVisitor, public ObjectVisitor {
     VerifyEdge(host, host.map_slot());
   }
 
+  void TransitiveClosure() {
+    while (mark_stack_.size() != 0) {
+      auto o = mark_stack_.back();
+      mark_stack_.pop_back();
+      o.Iterate(this);
+    }
+  }
+
+  static void Verify(v8::internal::Heap* heap) {
+    MMTkHeapVerifier visitor;
+    heap->IterateRoots(&visitor, {});
+    visitor.TransitiveClosure();
+  }
+
  private:
   V8_INLINE void VerifyRootEdge(Root root, FullObjectSlot p) {
     VerifyEdge(HeapObject(), p);
@@ -168,11 +188,12 @@ class MMTkHeapVerifier: public RootVisitor, public ObjectVisitor {
         printf("Dead edge %p.%p -> %p\n", (void*) host.ptr(), (void*) edge, (void*) o.ptr());
       }
       CHECK(third_party_heap::Heap::IsValidHeapObject(o));
-      o.Iterate(this);
+      mark_stack_.push_back(o);
     }
   }
 
   std::unordered_set<Address> marked_objects_;
+  std::vector<HeapObject> mark_stack_;
 };
 
 

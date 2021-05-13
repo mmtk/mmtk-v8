@@ -1,5 +1,5 @@
-use mmtk::scheduler::ProcessEdgesWork;
 use mmtk::scheduler::GCWorker;
+use mmtk::scheduler::ProcessEdgesWork;
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::ObjectReference;
 use mmtk::vm::Scanning;

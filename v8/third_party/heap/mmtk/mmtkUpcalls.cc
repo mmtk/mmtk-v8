@@ -22,10 +22,6 @@ static void mmtk_block_for_gc() {
     UNIMPLEMENTED();
 }
 
-static void* mmtk_active_collector(void* tls) {
-    UNIMPLEMENTED();
-}
-
 static void* mmtk_get_mmtk_mutator(void* tls) {
     UNIMPLEMENTED();
 }
@@ -72,7 +68,6 @@ V8_Upcalls mmtk_upcalls = {
     mmtk_resume_mutators,
     mmtk_spawn_collector_thread,
     mmtk_block_for_gc,
-    mmtk_active_collector,
     mmtk_get_next_mutator,
     mmtk_reset_mutator_iterator,
     mmtk_compute_static_roots,

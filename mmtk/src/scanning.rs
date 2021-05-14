@@ -1,7 +1,7 @@
 use mmtk::scheduler::gc_work::ProcessEdgesWork;
 use mmtk::scheduler::GCWorker;
+use mmtk::util::opaque_pointer::*;
 use mmtk::util::ObjectReference;
-use mmtk::util::OpaquePointer;
 use mmtk::vm::Scanning;
 use mmtk::{Mutator, TransitiveClosure};
 use V8;
@@ -15,12 +15,12 @@ impl Scanning<V8> for VMScanning {
     fn scan_object<T: TransitiveClosure>(
         _trace: &mut T,
         _object: ObjectReference,
-        _tls: OpaquePointer,
+        _tls: VMWorkerThread,
     ) {
         unimplemented!()
     }
 
-    fn notify_initial_thread_scan_complete(_partial_scan: bool, _tls: OpaquePointer) {
+    fn notify_initial_thread_scan_complete(_partial_scan: bool, _tls: VMWorkerThread) {
         unimplemented!()
     }
 
@@ -37,7 +37,7 @@ impl Scanning<V8> for VMScanning {
 
     fn scan_thread_root<W: ProcessEdgesWork<VM = V8>>(
         _mutator: &'static mut Mutator<V8>,
-        _tls: OpaquePointer,
+        _tls: VMWorkerThread,
     ) {
         unimplemented!()
     }

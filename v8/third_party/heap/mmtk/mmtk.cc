@@ -77,13 +77,19 @@ MMTk_Heap GetMMTkHeap(Address object_pointer) {
 
 static std::atomic_bool IsolateCreated { false };
 
+#define GB (1ull << 30)
+#define FIXED_HEAP_SIZE (1ull * GB)
+
+size_t Heap::Capacity() {
+  return FIXED_HEAP_SIZE;
+}
+
 std::unique_ptr<Heap> Heap::New(v8::internal::Isolate* isolate) {
   // MMTK current default maximum heap size is 1GB.
   auto isolate_created = IsolateCreated.exchange(true);
   DCHECK_WITH_MSG(!isolate_created, "Multiple isolates are not supported.");
   fprintf(stderr, "New Isolate: %lx\n", (unsigned long) isolate);
-  const size_t GB = 1u << 30;
-  MMTk_Heap new_heap = v8_new_heap(&mmtk_upcalls, GB);
+  MMTk_Heap new_heap = v8_new_heap(&mmtk_upcalls, FIXED_HEAP_SIZE);
   tph_mutator_ = reinterpret_cast<BumpAllocator*>(bind_mutator(new_heap, &tph_mutator_));
   // FIXME
   code_range_ = base::AddressRegion(0x60000000, (0xb0000000- 0x60000000)); // isolate->AddCodeRange(code_range_.begin(), code_range_.size());

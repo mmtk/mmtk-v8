@@ -1,5 +1,5 @@
-use mmtk::scheduler::gc_work::ProcessEdgesWork;
 use mmtk::scheduler::GCWorker;
+use mmtk::scheduler::ProcessEdgesWork;
 use mmtk::util::opaque_pointer::*;
 use mmtk::vm::Collection;
 use mmtk::MutatorContext;

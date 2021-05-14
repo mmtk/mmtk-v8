@@ -19,7 +19,7 @@ namespace internal {
 namespace third_party_heap {
 
 
-class MMTkEdgeVisitor: public RootVisitor, public ObjectVisitor, public WeakObjectRetainer {
+class MMTkEdgeVisitor: public RootVisitor, public ObjectVisitor {
  public:
   explicit MMTkEdgeVisitor(ProcessEdgesFn process_edges): process_edges_(process_edges) {
     NewBuffer buf = process_edges(NULL, 0, 0);
@@ -67,12 +67,6 @@ class MMTkEdgeVisitor: public RootVisitor, public ObjectVisitor, public WeakObje
 
   virtual void VisitMapPointer(HeapObject host) override final {
     ProcessEdge(host.map_slot());
-  }
-
-  virtual Object RetainAs(Object object) override final {
-    HeapObject heap_object = HeapObject::cast(object);
-    AddEdge(heap_object);
-    return object;
   }
 
  private:
@@ -194,6 +188,20 @@ class MMTkHeapVerifier: public RootVisitor, public ObjectVisitor {
 
   std::unordered_set<Address> marked_objects_;
   std::vector<HeapObject> mark_stack_;
+};
+
+
+class MMTkWeakObjectRetainer: public WeakObjectRetainer {
+ public:
+  virtual Object RetainAs(Object object) override final {
+    if (object == Object()) return object;
+    HeapObject heap_object = HeapObject::cast(object);
+    if (third_party_heap::Heap::IsValidHeapObject(heap_object)) {
+      return object;
+    } else {
+      return Object();
+    }
+  }
 };
 
 

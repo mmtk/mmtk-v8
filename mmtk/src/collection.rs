@@ -57,6 +57,12 @@ impl Collection<V8> for VMCollection {
             mmtk_delete_object(addr)
         }
     }
+
+    fn process_weak_refs() {
+        unsafe {
+            ((*UPCALLS).process_weak_refs)();
+        }
+    }
 }
 
 extern {

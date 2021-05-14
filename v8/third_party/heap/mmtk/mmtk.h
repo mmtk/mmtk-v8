@@ -134,6 +134,7 @@ typedef struct {
     bool (*is_mutator) (void* tls);
     void (*scan_roots) (ProcessEdgesFn process_edges);
     void (*scan_objects) (void** objects, size_t count, ProcessEdgesFn process_edges);
+    void (*process_weak_refs) ();
 } V8_Upcalls;
 
 /**

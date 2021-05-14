@@ -52,6 +52,7 @@ pub struct V8_Upcalls {
     pub is_mutator: extern "C" fn(tls: OpaquePointer) -> bool,
     pub scan_roots: extern "C" fn(process_edges: ProcessEdgesFn),
     pub scan_objects: extern "C" fn(objects: *const ObjectReference, count: usize, process_edges: ProcessEdgesFn),
+    pub process_weak_refs: extern "C" fn(),
 }
 
 pub static mut UPCALLS: *const V8_Upcalls = null_mut();

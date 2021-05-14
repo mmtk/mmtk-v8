@@ -27,6 +27,11 @@ static void mmtk_stop_all_mutators(void *tls) {
   fprintf(stderr, "mmtk_stop_all_mutators: heap verify end\n");
 }
 
+static void mmtk_process_weak_refs() {
+  MMTkWeakObjectRetainer retainer;
+  v8_heap->ProcessAllWeakReferences(&retainer);
+}
+
 static void mmtk_resume_mutators(void *tls) {
   fprintf(stderr, "mmtk_resume_mutators: heap verify start\n");
   MMTkHeapVerifier::Verify(v8_heap);
@@ -110,7 +115,6 @@ static size_t mmtk_get_object_size(void* object) {
 static void mmtk_scan_roots(ProcessEdgesFn process_edges) {
   MMTkEdgeVisitor root_visitor(process_edges);
   v8_heap->IterateRoots(&root_visitor, {});
-  v8_heap->ProcessAllWeakReferences(&root_visitor);
 }
 
 static void mmtk_scan_objects(void** objects, size_t count, ProcessEdgesFn process_edges) {
@@ -140,6 +144,7 @@ V8_Upcalls mmtk_upcalls = {
   mmtk_is_mutator,
   mmtk_scan_roots,
   mmtk_scan_objects,
+  mmtk_process_weak_refs,
 };
 }   // namespace third_party_heap
 }  // namespace internal

@@ -4,8 +4,10 @@
 #include <condition_variable>
 #include "src/objects/slots-inl.h"
 #include "src/heap/safepoint.h"
+#include "src/heap/array-buffer-sweeper.h"
 #include "src/deoptimizer/deoptimizer.h"
 #include "src/execution/frames-inl.h"
+#include "src/regexp/regexp.h"
 #include "mmtkVisitors.h"
 
 namespace v8 {
@@ -25,6 +27,15 @@ static void mmtk_stop_all_mutators(void *tls) {
   fprintf(stderr, "mmtk_stop_all_mutators: heap verify start\n");
   MMTkHeapVerifier::Verify(v8_heap);
   fprintf(stderr, "mmtk_stop_all_mutators: heap verify end\n");
+
+  v8_heap->isolate()->descriptor_lookup_cache()->Clear();
+  RegExpResultsCache::Clear(v8_heap->string_split_cache());
+  RegExpResultsCache::Clear(v8_heap->regexp_multiple_cache());
+  // v8_heap->FlushNumberStringCache();
+  int len = v8_heap->number_string_cache().length();
+  for (int i = 0; i < len; i++) {
+    v8_heap->number_string_cache().set_undefined(i);
+  }
 }
 
 static void mmtk_process_weak_refs() {
@@ -37,6 +48,7 @@ static void mmtk_resume_mutators(void *tls) {
   MMTkHeapVerifier::Verify(v8_heap);
   fprintf(stderr, "mmtk_resume_mutators: heap verify end\n");
   fprintf(stderr, "mmtk_resume_mutators\n");
+  // v8_heap->array_buffer_sweeper()->RequestSweepFull();
 
   v8_heap->isolate()->inner_pointer_to_code_cache()->Flush();
   // The stub caches are not traversed during GC; clear them to force
@@ -113,12 +125,12 @@ static size_t mmtk_get_object_size(void* object) {
 }
 
 static void mmtk_scan_roots(ProcessEdgesFn process_edges) {
-  MMTkEdgeVisitor root_visitor(process_edges);
+  MMTkEdgeVisitor root_visitor(v8_heap, process_edges);
   v8_heap->IterateRoots(&root_visitor, {});
 }
 
 static void mmtk_scan_objects(void** objects, size_t count, ProcessEdgesFn process_edges) {
-  MMTkEdgeVisitor visitor(process_edges);
+  MMTkEdgeVisitor visitor(v8_heap, process_edges);
   for (size_t i = 0; i < count; i++) {
     auto ptr = *(objects + i);
     DCHECK_EQ(((Address) ptr) & 1, 0);

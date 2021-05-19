@@ -10,6 +10,7 @@
 #include "src/codegen/reloc-info.h"
 #include "src/objects/code.h"
 #include "src/objects/code-inl.h"
+#include "src/objects/map-inl.h"
 #include "src/codegen/assembler-inl.h"
 #include <unordered_set>
 
@@ -21,7 +22,8 @@ namespace third_party_heap {
 
 class MMTkEdgeVisitor: public RootVisitor, public ObjectVisitor {
  public:
-  explicit MMTkEdgeVisitor(ProcessEdgesFn process_edges): process_edges_(process_edges) {
+  explicit MMTkEdgeVisitor(v8::internal::Heap* heap, ProcessEdgesFn process_edges): heap_(heap), process_edges_(process_edges) {
+    USE(heap_);
     NewBuffer buf = process_edges(NULL, 0, 0);
     buffer_ = buf.buf;
     cap_ = buf.cap;
@@ -100,6 +102,7 @@ class MMTkEdgeVisitor: public RootVisitor, public ObjectVisitor {
     }
   }
 
+  v8::internal::Heap* heap_;
   ProcessEdgesFn process_edges_;
   void** buffer_ = nullptr;
   size_t cap_ = 0;

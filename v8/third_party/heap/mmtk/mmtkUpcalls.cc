@@ -83,8 +83,10 @@ static void* mmtk_get_mmtk_mutator(void* tls) {
     UNIMPLEMENTED();
 }
 
+extern thread_local bool is_mutator;
+
 static bool mmtk_is_mutator(void* tls) {
-    return false;
+    return is_mutator;
 }
 
 extern std::vector<BumpAllocator*>* all_mutators;

@@ -36,6 +36,8 @@ TPHData* get_tph_data(Heap* tph) {
 
 std::vector<BumpAllocator*>* all_mutators = new std::vector<BumpAllocator*>();
 
+thread_local bool is_mutator = false;
+
 inline void CheckMutator(Heap* tph) {
   TPHData* tph_data_ = get_tph_data(tph);
   if (tph_mutator_ == nullptr) {
@@ -44,6 +46,7 @@ inline void CheckMutator(Heap* tph) {
     tph_mutator_->tph_data = tph_data_;
     all_mutators->push_back(tph_mutator_);
   }
+  is_mutator = true;
 }
 
 MMTk_Heap GetMMTkHeap(Address object_pointer) {
@@ -62,7 +65,7 @@ MMTk_Heap GetMMTkHeap(Address object_pointer) {
 static std::atomic_bool IsolateCreated { false };
 
 #define GB (1ull << 30)
-#define FIXED_HEAP_SIZE (1ull * GB)
+#define FIXED_HEAP_SIZE (4ull * GB)
 
 size_t Heap::Capacity() {
   return FIXED_HEAP_SIZE;

@@ -19,11 +19,10 @@ extern v8::internal::Heap* v8_heap;
 std::mutex m;
 std::condition_variable* cv = new std::condition_variable();
 bool gcInProgress = false;
-SafepointScope* scope;
 
 static void mmtk_stop_all_mutators(void *tls) {
   fprintf(stderr, "mmtk_stop_all_mutators\n");
-  scope = new SafepointScope(v8_heap);
+  v8_heap->safepoint()->EnterSafepointScope(ThreadKind::kBackground);
   fprintf(stderr, "mmtk_stop_all_mutators: heap verify start\n");
   MMTkHeapVerifier::Verify(v8_heap);
   fprintf(stderr, "mmtk_stop_all_mutators: heap verify end\n");
@@ -60,8 +59,7 @@ static void mmtk_resume_mutators(void *tls) {
   // Some code objects were marked for deoptimization during the GC.
   // Deoptimizer::DeoptimizeMarkedCode(v8_heap->isolate());
 
-  delete scope;
-  scope = nullptr;
+  v8_heap->safepoint()->LeaveSafepointScope();
   std::unique_lock<std::mutex> lock(m);
   gcInProgress = false;
   cv->notify_all();

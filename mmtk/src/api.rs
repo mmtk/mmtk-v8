@@ -2,7 +2,8 @@ use libc::c_char;
 use libc::c_void;
 use mmtk::memory_manager;
 use mmtk::scheduler::GCWorker;
-use mmtk::util::{Address, ObjectReference, OpaquePointer};
+use mmtk::util::opaque_pointer::*;
+use mmtk::util::{Address, ObjectReference};
 use mmtk::AllocationSemantics;
 use mmtk::Mutator;
 use mmtk::MMTK;
@@ -25,29 +26,28 @@ pub extern "C" fn v8_new_heap(calls: *const V8_Upcalls, heap_size: usize) -> *mu
     };
     let mmtk: *const MMTK<V8> = &*crate::SINGLETON;
     memory_manager::gc_init(unsafe { &mut *(mmtk as *mut MMTK<V8>) }, heap_size);
-    enable_collection(unsafe { &mut *(mmtk as *mut MMTK<V8>) }, OpaquePointer::UNINITIALIZED);
+    enable_collection(unsafe { &mut *(mmtk as *mut MMTK<V8>) }, VMThread::UNINITIALIZED);
 
     mmtk as *mut c_void
 }
 
 #[no_mangle]
-pub extern "C" fn start_control_collector(mmtk: &mut MMTK<V8>, tls: OpaquePointer) {
+pub extern "C" fn start_control_collector(mmtk: &mut MMTK<V8>, tls: VMWorkerThread) {
     memory_manager::start_control_collector(&*mmtk, tls);
 }
 
 #[no_mangle]
 pub extern "C" fn bind_mutator(
     mmtk: &'static mut MMTK<V8>,
-    tls: OpaquePointer,
+    tls: VMMutatorThread,
 ) -> *mut Mutator<V8> {
     Box::into_raw(memory_manager::bind_mutator(mmtk, tls))
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn mmtk_in_space(mmtk: &'static MMTK<V8>, object: ObjectReference, space: AllocationSemantics) -> i32 {
-    let unsync = &*mmtk.plan.base().unsync.get();
     match space {
-        AllocationSemantics::ReadOnly => unsync.ro_space.in_space(object) as _,
+        AllocationSemantics::ReadOnly => mmtk.plan.base().ro_space.in_space(object) as _,
         _ => unreachable!()
     }
 }
@@ -90,14 +90,14 @@ pub extern "C" fn will_never_move(object: ObjectReference) -> bool {
 #[no_mangle]
 pub extern "C" fn start_worker(
     mmtk: &'static mut MMTK<V8>,
-    tls: OpaquePointer,
+    tls: VMWorkerThread,
     worker: &'static mut GCWorker<V8>,
 ) {
     memory_manager::start_worker::<V8>(tls, worker, mmtk);
 }
 
 #[no_mangle]
-pub extern "C" fn enable_collection(mmtk: &'static mut MMTK<V8>, tls: OpaquePointer) {
+pub extern "C" fn enable_collection(mmtk: &'static mut MMTK<V8>, tls: VMThread) {
     memory_manager::enable_collection(mmtk, tls);
 }
 
@@ -143,7 +143,7 @@ pub extern "C" fn modify_check(mmtk: &mut MMTK<V8>, object: ObjectReference) {
 }
 
 #[no_mangle]
-pub extern "C" fn handle_user_collection_request(mmtk: &mut MMTK<V8>, tls: OpaquePointer) {
+pub extern "C" fn handle_user_collection_request(mmtk: &mut MMTK<V8>, tls: VMMutatorThread) {
     memory_manager::handle_user_collection_request::<V8>(mmtk, tls);
 }
 
@@ -175,7 +175,7 @@ pub extern "C" fn add_phantom_candidate(
 }
 
 #[no_mangle]
-pub extern "C" fn harness_begin(mmtk: &mut MMTK<V8>, tls: OpaquePointer) {
+pub extern "C" fn harness_begin(mmtk: &mut MMTK<V8>, tls: VMMutatorThread) {
     memory_manager::harness_begin(mmtk, tls);
 }
 

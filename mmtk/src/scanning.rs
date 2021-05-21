@@ -1,7 +1,7 @@
-use mmtk::scheduler::gc_work::ProcessEdgesWork;
 use mmtk::scheduler::GCWorker;
+use mmtk::scheduler::ProcessEdgesWork;
+use mmtk::util::opaque_pointer::*;
 use mmtk::util::ObjectReference;
-use mmtk::util::OpaquePointer;
 use mmtk::vm::Scanning;
 use mmtk::{Mutator, TransitiveClosure};
 use V8;
@@ -19,12 +19,12 @@ impl Scanning<V8> for VMScanning {
     fn scan_object<T: TransitiveClosure>(
         _trace: &mut T,
         _object: ObjectReference,
-        _tls: OpaquePointer,
+        _tls: VMWorkerThread,
     ) {
         unimplemented!()
     }
 
-    fn notify_initial_thread_scan_complete(_partial_scan: bool, _tls: OpaquePointer) {
+    fn notify_initial_thread_scan_complete(_partial_scan: bool, _tls: VMWorkerThread) {
         unimplemented!()
     }
 
@@ -45,14 +45,17 @@ impl Scanning<V8> for VMScanning {
 
     fn scan_thread_root<W: ProcessEdgesWork<VM = V8>>(
         _mutator: &'static mut Mutator<V8>,
-        _tls: OpaquePointer,
+        _tls: VMWorkerThread,
     ) {
         unimplemented!()
     }
 
     fn scan_vm_specific_roots<W: ProcessEdgesWork<VM = V8>>() {
-        SINGLETON.scheduler.work_buckets[WorkBucketStage::Prepare]
-                .add(ScanRoots::<W>::new());
+        mmtk::memory_manager::add_work_packet(
+            &SINGLETON,
+            WorkBucketStage::Prepare,
+            ScanRoots::<W>::new(),
+        );
     }
 
     fn supports_return_barrier() -> bool {
@@ -83,8 +86,11 @@ pub(crate) extern "C" fn create_process_edges_work<W: ProcessEdgesWork<VM = V8>>
 ) -> NewBuffer {
     if !ptr.is_null() {
         let buf = unsafe { Vec::<Address>::from_raw_parts(ptr, length, capacity) };
-        SINGLETON.scheduler.work_buckets[WorkBucketStage::Closure]
-            .add(W::new(buf, false, &SINGLETON));
+        mmtk::memory_manager::add_work_packet(
+            &SINGLETON,
+            WorkBucketStage::Closure,
+            W::new(buf, false, &SINGLETON),
+        );
     }
     let (ptr, _, capacity) = Vec::with_capacity(W::CAPACITY).into_raw_parts();
     NewBuffer { ptr, capacity }

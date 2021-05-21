@@ -12,8 +12,8 @@ use std::ptr::null_mut;
 
 use libc::c_void;
 use mmtk::scheduler::GCWorker;
+use mmtk::util::opaque_pointer::*;
 use mmtk::util::ObjectReference;
-use mmtk::util::OpaquePointer;
 use mmtk::vm::VMBinding;
 use mmtk::Mutator;
 use mmtk::MMTK;
@@ -36,9 +36,9 @@ type ProcessEdgesFn = *const extern "C" fn(buf: *mut Address, size: usize, cap: 
 
 #[repr(C)]
 pub struct V8_Upcalls {
-    pub stop_all_mutators: extern "C" fn(tls: OpaquePointer),
-    pub resume_mutators: extern "C" fn(tls: OpaquePointer),
-    pub spawn_worker_thread: extern "C" fn(tls: OpaquePointer, ctx: *mut GCWorker<V8>),
+    pub stop_all_mutators: extern "C" fn(tls: VMWorkerThread),
+    pub resume_mutators: extern "C" fn(tls: VMWorkerThread),
+    pub spawn_worker_thread: extern "C" fn(tls: VMThread, ctx: *mut GCWorker<V8>),
     pub block_for_gc: extern "C" fn(),
     pub get_next_mutator: extern "C" fn() -> *mut Mutator<V8>,
     pub reset_mutator_iterator: extern "C" fn(),
@@ -48,8 +48,8 @@ pub struct V8_Upcalls {
     pub scan_object: extern "C" fn(trace: *mut c_void, object: ObjectReference, tls: OpaquePointer),
     pub dump_object: extern "C" fn(object: ObjectReference),
     pub get_object_size: extern "C" fn(object: ObjectReference) -> usize,
-    pub get_mmtk_mutator: extern "C" fn(tls: OpaquePointer) -> *mut Mutator<V8>,
-    pub is_mutator: extern "C" fn(tls: OpaquePointer) -> bool,
+    pub get_mmtk_mutator: extern "C" fn(tls: VMMutatorThread) -> *mut Mutator<V8>,
+    pub is_mutator: extern "C" fn(tls: VMThread) -> bool,
     pub scan_roots: extern "C" fn(process_edges: ProcessEdgesFn),
     pub scan_objects: extern "C" fn(objects: *const ObjectReference, count: usize, process_edges: ProcessEdgesFn),
     pub process_weak_refs: extern "C" fn(),

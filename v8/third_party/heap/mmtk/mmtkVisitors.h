@@ -19,8 +19,38 @@ namespace v8 {
 namespace internal {
 namespace third_party_heap {
 
+class MMTkRootVisitor: public RootVisitor {
+ public:
+  explicit MMTkRootVisitor(v8::internal::Heap* heap, TraceRootFn trace_root, void* context): heap_(heap), trace_root_(trace_root), context_(context) {
+    USE(heap_);
+  }
 
-class MMTkEdgeVisitor: public RootVisitor, public ObjectVisitor {
+  virtual void VisitRootPointer(Root root, const char* description, FullObjectSlot p) override final {
+    ProcessRootEdge(root, p);
+  }
+
+  virtual void VisitRootPointers(Root root, const char* description, FullObjectSlot start, FullObjectSlot end) override final {
+    for (FullObjectSlot p = start; p < end; ++p) ProcessRootEdge(root, p);
+  }
+
+  virtual void VisitRootPointers(Root root, const char* description, OffHeapObjectSlot start, OffHeapObjectSlot end) override final {
+    for (OffHeapObjectSlot p = start; p < end; ++p) ProcessRootEdge(root, p);
+  }
+
+ private:
+  V8_INLINE void ProcessRootEdge(Root root, FullObjectSlot slot) {
+    HeapObject object;
+    if ((*slot).GetHeapObject(&object)) {
+      trace_root_((void*) slot.address(), context_);
+    }
+  }
+
+  v8::internal::Heap* heap_;
+  TraceRootFn trace_root_;
+  void* context_;
+};
+
+class MMTkEdgeVisitor: public ObjectVisitor {
  public:
   explicit MMTkEdgeVisitor(v8::internal::Heap* heap, ProcessEdgesFn process_edges): heap_(heap), process_edges_(process_edges) {
     USE(heap_);
@@ -36,18 +66,6 @@ class MMTkEdgeVisitor: public RootVisitor, public ObjectVisitor {
     }
   }
 
-  virtual void VisitRootPointer(Root root, const char* description, FullObjectSlot p) override final {
-    ProcessRootEdge(root, p);
-  }
-
-  virtual void VisitRootPointers(Root root, const char* description, FullObjectSlot start, FullObjectSlot end) override final {
-    for (FullObjectSlot p = start; p < end; ++p) ProcessRootEdge(root, p);
-  }
-
-  virtual void VisitRootPointers(Root root, const char* description, OffHeapObjectSlot start, OffHeapObjectSlot end) override final {
-    for (OffHeapObjectSlot p = start; p < end; ++p) ProcessRootEdge(root, p);
-  }
-
   virtual void VisitPointers(HeapObject host, ObjectSlot start, ObjectSlot end) override final {
     for (ObjectSlot p = start; p < end; ++p) ProcessEdge(p);
   }
@@ -57,14 +75,12 @@ class MMTkEdgeVisitor: public RootVisitor, public ObjectVisitor {
   }
 
   virtual void VisitCodeTarget(Code host, RelocInfo* rinfo) override final {
-    // We need to pass the location of the root pointer (i.e. the slot) to MMTk. Fake it for now.
     Code target = Code::GetCodeFromTargetAddress(rinfo->target_address());
-    AddEdge(target);
+    AddNonMovingEdge(target);
   }
 
   virtual void VisitEmbeddedPointer(Code host, RelocInfo* rinfo) override final {
-    // We need to pass the location of the root pointer (i.e. the slot) to MMTk. Fake it for now.
-    AddEdge(rinfo->target_object());
+    AddNonMovingEdge(rinfo->target_object());
   }
 
   virtual void VisitMapPointer(HeapObject host) override final {
@@ -80,17 +96,21 @@ class MMTkEdgeVisitor: public RootVisitor, public ObjectVisitor {
   V8_INLINE void ProcessEdge(T p) {
     HeapObject object;
     if ((*p).GetHeapObject(&object)) {
-      AddEdge(object);
+      PushEdge((void*) p.address());
     }
   }
 
-  V8_INLINE void AddEdge(HeapObject o) {
+  V8_INLINE void AddNonMovingEdge(HeapObject o) {
+    DCHECK(!mmtk_is_movable(o));
+    // TODO: Don't malloc
     HeapObject* edge = new HeapObject();
     *edge = o;
-    buffer_[cursor_++] = (void*) edge;
-    if (cursor_ >= cap_) {
-      flush();
-    }
+    PushEdge((void*) edge);
+  }
+
+  V8_INLINE void PushEdge(void* edge) {
+    buffer_[cursor_++] = edge;
+    if (cursor_ >= cap_) flush();
   }
 
   void flush() {

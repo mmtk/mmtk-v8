@@ -33,6 +33,7 @@ pub struct NewBuffer {
 }
 
 type ProcessEdgesFn = *const extern "C" fn(buf: *mut Address, size: usize, cap: usize) -> NewBuffer;
+type TraceRootFn = *const extern "C" fn(slot: Address, ctx: &'static mut GCWorker<V8>) -> Address;
 
 #[repr(C)]
 pub struct V8_Upcalls {
@@ -50,7 +51,7 @@ pub struct V8_Upcalls {
     pub get_object_size: extern "C" fn(object: ObjectReference) -> usize,
     pub get_mmtk_mutator: extern "C" fn(tls: VMMutatorThread) -> *mut Mutator<V8>,
     pub is_mutator: extern "C" fn(tls: VMThread) -> bool,
-    pub scan_roots: extern "C" fn(process_edges: ProcessEdgesFn),
+    pub scan_roots: extern "C" fn(trace_root: TraceRootFn, context: *mut c_void),
     pub scan_objects: extern "C" fn(objects: *const ObjectReference, count: usize, process_edges: ProcessEdgesFn),
     pub process_weak_refs: extern "C" fn(),
 }

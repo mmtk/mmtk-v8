@@ -53,8 +53,8 @@ impl Scanning<V8> for VMScanning {
     fn scan_vm_specific_roots<W: ProcessEdgesWork<VM = V8>>() {
         mmtk::memory_manager::add_work_packet(
             &SINGLETON,
-            WorkBucketStage::Prepare,
-            ScanRoots::<W>::new(),
+            WorkBucketStage::Closure,
+            ScanAndForwardRoots::<W>::new(),
         );
     }
 
@@ -63,20 +63,64 @@ impl Scanning<V8> for VMScanning {
     }
 }
 
-pub struct ScanRoots<E: ProcessEdgesWork<VM = V8>>(PhantomData<E>);
+pub struct ScanAndForwardRoots<E: ProcessEdgesWork<VM = V8>>(PhantomData<E>);
 
-impl<E: ProcessEdgesWork<VM = V8>> ScanRoots<E> {
+impl<E: ProcessEdgesWork<VM = V8>> ScanAndForwardRoots<E> {
     pub fn new() -> Self {
         Self(PhantomData)
     }
 }
 
-impl<E: ProcessEdgesWork<VM = V8>> GCWork<V8> for ScanRoots<E> {
-    fn do_work(&mut self, _worker: &mut GCWorker<V8>, _mmtk: &'static MMTK<V8>) {
+impl<E: ProcessEdgesWork<VM = V8>> GCWork<V8> for ScanAndForwardRoots<E> {
+    fn do_work(&mut self, worker: &mut GCWorker<V8>, _mmtk: &'static MMTK<V8>) {
         unsafe {
-            ((*UPCALLS).scan_roots)(create_process_edges_work::<E> as _);
+            debug_assert!(ROOT_OBJECTS.is_empty());
+            ((*UPCALLS).scan_roots)(trace_root::<E> as _, worker as *mut _ as _);
+            if !ROOT_OBJECTS.is_empty() {
+                flush_roots::<E>(worker);
+            }
+            debug_assert!(ROOT_OBJECTS.is_empty());
         }
     }
+}
+
+static mut ROOT_OBJECTS: Vec<ObjectReference> = Vec::new();
+
+fn flush_roots<W: ProcessEdgesWork<VM = V8>>(worker: &mut GCWorker<V8>) {
+    let mut buf = vec![];
+    unsafe { std::mem::swap(&mut buf, &mut ROOT_OBJECTS); }
+    let scan_objects_work = mmtk::scheduler::gc_work::ScanObjects::<W>::new(buf, false);
+    mmtk::memory_manager::add_work_packet(
+        &SINGLETON,
+        WorkBucketStage::Closure,
+        scan_objects_work,
+    );
+}
+
+pub(crate) extern "C" fn trace_root<W: ProcessEdgesWork<VM = V8>>(slot: Address, worker: &'static mut GCWorker<V8>) -> ObjectReference {
+    let obj = unsafe { slot.load() };
+    let mut w = W::new(vec![], false, &SINGLETON);
+    w.set_worker(worker);
+    let new_obj = w.trace_object(obj);
+    if W::OVERWRITE_REFERENCE {
+        unsafe {
+            slot.store((new_obj.to_address().as_usize() & !0b11) | 1);
+        }
+    }
+    unsafe {
+        if ROOT_OBJECTS.is_empty() {
+            ROOT_OBJECTS.reserve(W::CAPACITY);
+        }
+    }
+    for o in &w.nodes {
+        unsafe { ROOT_OBJECTS.push(*o); }
+    }
+    unsafe {
+        if ROOT_OBJECTS.len() > W::CAPACITY {
+            flush_roots::<W>(worker);
+        }
+    }
+    new_obj
 }
 
 pub(crate) extern "C" fn create_process_edges_work<W: ProcessEdgesWork<VM = V8>>(

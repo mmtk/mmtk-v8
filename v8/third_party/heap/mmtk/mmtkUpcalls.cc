@@ -124,8 +124,8 @@ static size_t mmtk_get_object_size(void* object) {
   UNIMPLEMENTED();
 }
 
-static void mmtk_scan_roots(ProcessEdgesFn process_edges) {
-  MMTkEdgeVisitor root_visitor(v8_heap, process_edges);
+static void mmtk_scan_roots(TraceRootFn trace_root, void* context) {
+  MMTkRootVisitor root_visitor(v8_heap, trace_root, context);
   v8_heap->IterateRoots(&root_visitor, {});
 }
 

@@ -20,6 +20,15 @@ pub unsafe extern "C" fn release_buffer(ptr: *mut Address, length: usize, capaci
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn mmtk_is_movable(object: ObjectReference) -> i32 {
+    let object = unsafe {
+        let untagged_word = object.to_address().as_usize() & !0b11usize;
+        Address::from_usize(untagged_word).to_object_reference()
+    };
+    if object.is_movable() { 1 } else { 0 }
+}
+
+#[no_mangle]
 pub extern "C" fn v8_new_heap(calls: *const V8_Upcalls, heap_size: usize) -> *mut c_void {
     unsafe {
         UPCALLS = calls;

@@ -116,6 +116,7 @@ typedef struct {
 } NewBuffer;
 
 typedef NewBuffer (*ProcessEdgesFn)(void** buf, size_t len, size_t cap);
+typedef void* (*TraceRootFn)(void* slot, void* ctx);
 
 typedef struct {
     void (*stop_all_mutators) (void *tls);
@@ -132,7 +133,7 @@ typedef struct {
     size_t (*get_object_size) (void* object);
     void* (*get_mmtk_mutator) (void* tls);
     bool (*is_mutator) (void* tls);
-    void (*scan_roots) (ProcessEdgesFn process_edges);
+    void (*scan_roots) (TraceRootFn process_edges, void* context);
     void (*scan_objects) (void** objects, size_t count, ProcessEdgesFn process_edges);
     void (*process_weak_refs) ();
 } V8_Upcalls;
@@ -152,6 +153,8 @@ extern void add_phantom_candidate(void* ref, void* referent);
 
 extern void harness_begin(void* ref, void *tls);
 extern void harness_end(void* ref);
+
+extern int mmtk_is_movable(v8::internal::Object o);
 
 #ifdef __cplusplus
 }

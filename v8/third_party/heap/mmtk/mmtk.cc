@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 #include "mmtk.h"
+#include "src/heap/heap-inl.h"
 
 namespace v8 {
 namespace internal {
@@ -49,19 +50,6 @@ inline void CheckMutator(Heap* tph) {
   is_mutator = true;
 }
 
-MMTk_Heap GetMMTkHeap(Address object_pointer) {
-  for (size_t i = 0; i < tph_data_list->size(); i++)
-  {
-    TPHData* tph_data_ = reinterpret_cast<TPHData*>((*tph_data_list)[i]);
-    void* ptr = tph_archive_obj_to_isolate(
-          tph_data_->archive(), reinterpret_cast<void*>(object_pointer));
-    if (ptr != nullptr) {
-      return tph_data_->mmtk_heap();
-    }
-  }
-  UNREACHABLE();
-}
-
 static std::atomic_bool IsolateCreated { false };
 
 #define GB (1ull << 30)
@@ -90,16 +78,7 @@ std::unique_ptr<Heap> Heap::New(v8::internal::Isolate* isolate) {
 }
 
 v8::internal::Isolate* Heap::GetIsolate(Address object_pointer) {
-  for (size_t i = 0; i < tph_data_list->size(); i++)
-  {
-    TPHData* tph_data_ = reinterpret_cast<TPHData*>((*tph_data_list)[i]);
-    void* ptr = tph_archive_obj_to_isolate(
-          tph_data_->archive(), reinterpret_cast<void*>(object_pointer));
-    if (ptr != nullptr) {
-      return reinterpret_cast<v8::internal::Isolate*>(ptr);
-    }
-  }
-  UNREACHABLE();
+  return v8_heap->isolate();
 }
 
 
@@ -186,19 +165,6 @@ HeapObject Heap::NextObject() {
   } else {
     return HeapObject();
   }
-}
-extern "C" {
-  void mmtk_delete_object(Address addr) {
-    for (auto tph_data : *tph_data_list) {
-      auto space = AllocationSpace(tph_archive_obj_to_space(tph_data->archive(), reinterpret_cast<void*>(addr)));
-      if (space == kNoSpace) continue;
-      tph_archive_remove(tph_data->archive(), (void*) addr);
-      return;
-    }
-    printf("Unknown object %p\n", (void*) addr);
-    UNREACHABLE();
-  }
-
 }
 
 }

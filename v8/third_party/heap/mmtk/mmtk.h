@@ -104,7 +104,6 @@ extern void     tph_archive_remove(void* arch, void* object);
 extern void     tph_archive_iter_reset(void* arch);
 extern void*    tph_archive_iter_next(void* arch);
 extern void*    tph_archive_inner_to_obj(void* arch, void* inner_ptr);
-extern void*    tph_archive_obj_to_isolate(void* arch, void* obj_ptr);
 extern uint8_t  tph_archive_obj_to_space(void* arch, void* obj_ptr);
 extern int mmtk_in_space(void* mmtk, void* object, size_t space);
 

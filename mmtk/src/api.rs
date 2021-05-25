@@ -21,7 +21,7 @@ pub unsafe extern "C" fn release_buffer(ptr: *mut Address, length: usize, capaci
 
 #[no_mangle]
 pub unsafe extern "C" fn mmtk_is_movable(object: ObjectReference) -> i32 {
-    let object = unsafe {
+    let object = {
         let untagged_word = object.to_address().as_usize() & !0b11usize;
         Address::from_usize(untagged_word).to_object_reference()
     };
@@ -31,7 +31,7 @@ pub unsafe extern "C" fn mmtk_is_movable(object: ObjectReference) -> i32 {
 #[no_mangle]
 pub unsafe extern "C" fn mmtk_get_forwarded_object(object: ObjectReference) -> *mut c_void {
     let tag = object.to_address().as_usize() & 0b11usize;
-    let object = unsafe {
+    let object = {
         let untagged_word = object.to_address().as_usize() & !0b11usize;
         Address::from_usize(untagged_word).to_object_reference()
     };

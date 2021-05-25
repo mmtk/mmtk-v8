@@ -30,7 +30,7 @@ impl Scanning<V8> for VMScanning {
 
     fn scan_objects<W: ProcessEdgesWork<VM = V8>>(
         objects: &[ObjectReference],
-        worker: &mut GCWorker<V8>,
+        _worker: &mut GCWorker<V8>,
     ) {
         unsafe {
             let buf = objects.as_ptr();
@@ -86,7 +86,7 @@ impl<E: ProcessEdgesWork<VM = V8>> GCWork<V8> for ScanAndForwardRoots<E> {
 
 static mut ROOT_OBJECTS: Vec<ObjectReference> = Vec::new();
 
-fn flush_roots<W: ProcessEdgesWork<VM = V8>>(worker: &mut GCWorker<V8>) {
+fn flush_roots<W: ProcessEdgesWork<VM = V8>>(_worker: &mut GCWorker<V8>) {
     let mut buf = vec![];
     unsafe { std::mem::swap(&mut buf, &mut ROOT_OBJECTS); }
     let scan_objects_work = mmtk::scheduler::gc_work::ScanObjects::<W>::new(buf, false);

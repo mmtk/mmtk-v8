@@ -1,12 +1,13 @@
 use mmtk::scheduler::GCWorker;
 use mmtk::util::*;
 use mmtk::scheduler::ProcessEdgesWork;
-use mmtk::util::opaque_pointer::*;
 use mmtk::vm::Collection;
 use mmtk::{MutatorContext, MMTK};
 
 use UPCALLS;
 use V8;
+
+use crate::object_archive::global_object_archive;
 
 pub struct VMCollection {}
 
@@ -29,7 +30,7 @@ impl Collection<V8> for VMCollection {
         }
     }
 
-    fn spawn_worker_thread(tls: VMThread, ctx: Option<&GCWorker<V8>>) {
+    fn spawn_worker_thread(_tls: VMThread, ctx: Option<&GCWorker<V8>>) {
         let ctx_ptr = if let Some(r) = ctx {
             r as *const GCWorker<V8> as *mut GCWorker<V8>
         } else {
@@ -53,10 +54,8 @@ impl Collection<V8> for VMCollection {
         unimplemented!()
     }
 
-    fn sweep(addr: Address) {
-        unsafe {
-            mmtk_delete_object(addr)
-        }
+    fn update_object_archive() {
+        global_object_archive().update();
     }
 
     fn process_weak_refs() {
@@ -64,8 +63,4 @@ impl Collection<V8> for VMCollection {
             ((*UPCALLS).process_weak_refs)();
         }
     }
-}
-
-extern {
-    fn mmtk_delete_object(addr: Address);
 }

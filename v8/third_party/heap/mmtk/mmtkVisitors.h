@@ -217,11 +217,19 @@ class MMTkHeapVerifier: public RootVisitor, public ObjectVisitor {
 class MMTkWeakObjectRetainer: public WeakObjectRetainer {
  public:
   virtual Object RetainAs(Object object) override final {
+    // fprintf(stderr, "RetainAs %p\n", (void*) object.ptr());
     if (object == Object()) return object;
     HeapObject heap_object = HeapObject::cast(object);
     if (third_party_heap::Heap::IsValidHeapObject(heap_object)) {
+      auto f = mmtk_get_forwarded_object(heap_object);
+      if (f != nullptr) {
+        // fprintf(stderr, "%p -> %p\n", (void*) object.ptr(), (void*) f);
+        return Object((Address) f);
+      }
+      // fprintf(stderr, "%p is dead 1 \n", (void*) object.ptr());
       return object;
     } else {
+      // fprintf(stderr, "%p is dead 2 \n", (void*) object.ptr());
       return Object();
     }
   }

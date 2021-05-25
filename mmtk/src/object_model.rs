@@ -10,12 +10,23 @@ pub struct VMObjectModel {}
 impl ObjectModel<V8> for VMObjectModel {
     const GC_BYTE_OFFSET: isize = 7;
 
+    #[inline(always)]
     fn copy(
-        _from: ObjectReference,
-        _allocator: AllocationSemantics,
-        _copy_context: &mut impl CopyContext,
+        from: ObjectReference,
+        allocator: AllocationSemantics,
+        copy_context: &mut impl CopyContext,
     ) -> ObjectReference {
-        unimplemented!()
+        let bytes = unsafe { ((*UPCALLS).get_object_size)(from) };
+        let dst = copy_context.alloc_copy(from, bytes, ::std::mem::size_of::<usize>(), 0, allocator);
+        // Copy
+        // println!("Copy {:?} -> {:?}", from, dst);
+        let src = from.to_address();
+        for i in 0..bytes {
+            unsafe { (dst + i).store((src + i).load::<u8>()) };
+        }
+        let to_obj = unsafe { dst.to_object_reference() };
+        copy_context.post_copy(to_obj, unsafe { Address::zero() }, bytes, allocator);
+        to_obj
     }
 
     fn copy_to(_from: ObjectReference, _to: ObjectReference, _region: Address) -> Address {

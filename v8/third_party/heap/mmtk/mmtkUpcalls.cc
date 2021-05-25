@@ -38,6 +38,7 @@ static void mmtk_stop_all_mutators(void *tls) {
 }
 
 static void mmtk_process_weak_refs() {
+  // fprintf(stderr, "mmtk_process_weak_refs\n");
   MMTkWeakObjectRetainer retainer;
   v8_heap->ProcessAllWeakReferences(&retainer);
 }
@@ -121,7 +122,9 @@ static void mmtk_dump_object(void* object) {
 }
 
 static size_t mmtk_get_object_size(void* object) {
-  UNIMPLEMENTED();
+  auto o = HeapObject::FromAddress((Address) object);
+  auto m = o.map();
+  return o.SizeFromMap(m);
 }
 
 static void mmtk_scan_roots(TraceRootFn trace_root, void* context) {

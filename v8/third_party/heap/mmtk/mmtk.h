@@ -155,6 +155,7 @@ extern void harness_begin(void* ref, void *tls);
 extern void harness_end(void* ref);
 
 extern int mmtk_is_movable(v8::internal::Object o);
+extern void* mmtk_get_forwarded_object(v8::internal::Object o);
 
 #ifdef __cplusplus
 }

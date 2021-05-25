@@ -98,13 +98,18 @@ fn flush_roots<W: ProcessEdgesWork<VM = V8>>(worker: &mut GCWorker<V8>) {
 }
 
 pub(crate) extern "C" fn trace_root<W: ProcessEdgesWork<VM = V8>>(slot: Address, worker: &'static mut GCWorker<V8>) -> ObjectReference {
-    let obj = unsafe { slot.load() };
+    let obj: ObjectReference = unsafe { slot.load() };
+    let tag = obj.to_address().as_usize() & 0b11usize;
     let mut w = W::new(vec![], false, &SINGLETON);
     w.set_worker(worker);
-    let new_obj = w.trace_object(obj);
+    let object_untagged = unsafe {
+        Address::from_usize(obj.to_address().as_usize() & !0b11usize).to_object_reference()
+    };
+    let new_obj = w.trace_object(object_untagged);
+    // println!("Root {:?} {:?} -> {:?}", slot, obj, new_obj);
     if W::OVERWRITE_REFERENCE {
         unsafe {
-            slot.store((new_obj.to_address().as_usize() & !0b11) | 1);
+            slot.store((new_obj.to_address().as_usize() & !0b11) | tag);
         }
     }
     unsafe {

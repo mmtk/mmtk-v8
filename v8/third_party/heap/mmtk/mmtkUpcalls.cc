@@ -132,8 +132,8 @@ static void mmtk_scan_roots(TraceRootFn trace_root, void* context) {
   v8_heap->IterateRoots(&root_visitor, {});
 }
 
-static void mmtk_scan_objects(void** objects, size_t count, ProcessEdgesFn process_edges) {
-  MMTkEdgeVisitor visitor(v8_heap, process_edges);
+static void mmtk_scan_objects(void** objects, size_t count, ProcessEdgesFn process_edges, TraceFieldFn trace_field, void* context) {
+  MMTkEdgeVisitor visitor(v8_heap, process_edges, trace_field,  context);
   for (size_t i = 0; i < count; i++) {
     auto ptr = *(objects + i);
     DCHECK_EQ(((Address) ptr) & 1, 0);

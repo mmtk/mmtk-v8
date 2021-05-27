@@ -52,7 +52,7 @@ class MMTkRootVisitor: public RootVisitor {
 
 class MMTkEdgeVisitor: public ObjectVisitor {
  public:
-  explicit MMTkEdgeVisitor(v8::internal::Heap* heap, ProcessEdgesFn process_edges): heap_(heap), process_edges_(process_edges) {
+  explicit MMTkEdgeVisitor(v8::internal::Heap* heap, ProcessEdgesFn process_edges, TraceFieldFn trace_field, void* context): heap_(heap), process_edges_(process_edges), trace_field_(trace_field), context_(context) {
     USE(heap_);
     NewBuffer buf = process_edges(NULL, 0, 0);
     buffer_ = buf.buf;
@@ -80,7 +80,11 @@ class MMTkEdgeVisitor: public ObjectVisitor {
   }
 
   virtual void VisitEmbeddedPointer(Code host, RelocInfo* rinfo) override final {
-    AddNonMovingEdge(rinfo->target_object());
+    auto o = rinfo->target_object();
+    trace_field_((void*) &o, context_);
+    if (o != rinfo->target_object()) {
+      rinfo->set_target_object(heap_, o);
+    }
   }
 
   virtual void VisitMapPointer(HeapObject host) override final {
@@ -124,6 +128,8 @@ class MMTkEdgeVisitor: public ObjectVisitor {
 
   v8::internal::Heap* heap_;
   ProcessEdgesFn process_edges_;
+  TraceFieldFn trace_field_;
+  void* context_;
   void** buffer_ = nullptr;
   size_t cap_ = 0;
   size_t cursor_ = 0;

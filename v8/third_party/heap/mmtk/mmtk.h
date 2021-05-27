@@ -116,6 +116,7 @@ typedef struct {
 
 typedef NewBuffer (*ProcessEdgesFn)(void** buf, size_t len, size_t cap);
 typedef void* (*TraceRootFn)(void* slot, void* ctx);
+typedef void* (*TraceFieldFn)(void* slot, void* ctx);
 
 typedef struct {
     void (*stop_all_mutators) (void *tls);
@@ -133,7 +134,7 @@ typedef struct {
     void* (*get_mmtk_mutator) (void* tls);
     bool (*is_mutator) (void* tls);
     void (*scan_roots) (TraceRootFn process_edges, void* context);
-    void (*scan_objects) (void** objects, size_t count, ProcessEdgesFn process_edges);
+    void (*scan_objects) (void** objects, size_t count, ProcessEdgesFn process_edges, TraceFieldFn trace_field, void* context);
     void (*process_weak_refs) ();
 } V8_Upcalls;
 

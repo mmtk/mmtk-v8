@@ -85,10 +85,13 @@ v8::internal::Isolate* Heap::GetIsolate(Address object_pointer) {
 // Address space in Rust is statically from 0x60000000 - 0xb0000000
 AllocationResult Heap::Allocate(size_t size_in_bytes, AllocationType type, AllocationAlignment align) {
   CheckMutator(this);
+  if (!initialization_finished_ && type == AllocationType::kOld) {
+    type = AllocationType::kMap;
+  }
   TPHData* tph_data_ = get_tph_data(this);
   bool large_object = size_in_bytes > kMaxRegularHeapObjectSize;
   size_t align_bytes = (type == AllocationType::kCode) ? kCodeAlignment : (align == kWordAligned) ? kSystemPointerSize : (align == kDoubleAligned) ? kDoubleSize : kSystemPointerSize;
-  int space = (type == AllocationType::kCode) ? 3 : (type == AllocationType::kReadOnly) ? 4 : (large_object) ? 2 : 0;
+  int space = (type == AllocationType::kCode) ? 3 : (type == AllocationType::kReadOnly) ? 4 : (large_object || type == AllocationType::kMap) ? 2 : 0;
   Address result =
       reinterpret_cast<Address>(alloc(tph_mutator_, size_in_bytes, align_bytes, 0, space));
   AllocationSpace allocation_space;
@@ -96,6 +99,8 @@ AllocationResult Heap::Allocate(size_t size_in_bytes, AllocationType type, Alloc
     allocation_space = large_object ? CODE_LO_SPACE : CODE_SPACE;
   } else if (type == AllocationType::kReadOnly) {
     allocation_space = RO_SPACE;
+  } else if (type == AllocationType::kMap) {
+    allocation_space = MAP_SPACE;
   } else {
     allocation_space = large_object ? LO_SPACE : OLD_SPACE;
   }
@@ -129,6 +134,10 @@ bool Heap::InSpace(Address address, AllocationSpace allocation_space) {
     return space == allocation_space;
   }
   UNREACHABLE();
+}
+
+bool Heap::IsImmovable(HeapObject object) {
+  return mmtk_is_movable(object) == 0;
 }
 
 bool Heap::InOldSpace(Address address) {

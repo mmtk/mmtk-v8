@@ -30,12 +30,18 @@ impl Scanning<V8> for VMScanning {
 
     fn scan_objects<W: ProcessEdgesWork<VM = V8>>(
         objects: &[ObjectReference],
-        _worker: &mut GCWorker<V8>,
+        worker: &mut GCWorker<V8>,
     ) {
         unsafe {
-            let buf = objects.as_ptr();
-            let len = objects.len();
-            ((*UPCALLS).scan_objects)(buf, len, create_process_edges_work::<W> as _);
+            debug_assert!(OBJECTS_TO_SCAN.is_empty());
+            OBJECTS_TO_SCAN = objects.to_vec();
+            while !OBJECTS_TO_SCAN.is_empty() {
+                let objects = OBJECTS_TO_SCAN.clone();
+                OBJECTS_TO_SCAN = vec![];
+                let buf = objects.as_ptr();
+                let len = objects.len();
+                ((*UPCALLS).scan_objects)(buf, len, create_process_edges_work::<W> as _, trace_slot::<W> as _, worker as *mut _ as _);
+            }
         }
     }
 
@@ -84,6 +90,7 @@ impl<E: ProcessEdgesWork<VM = V8>> GCWork<V8> for ScanAndForwardRoots<E> {
     }
 }
 
+#[thread_local]
 static mut ROOT_OBJECTS: Vec<ObjectReference> = Vec::new();
 
 fn flush_roots<W: ProcessEdgesWork<VM = V8>>(_worker: &mut GCWorker<V8>) {
@@ -124,6 +131,34 @@ pub(crate) extern "C" fn trace_root<W: ProcessEdgesWork<VM = V8>>(slot: Address,
         if ROOT_OBJECTS.len() > W::CAPACITY {
             flush_roots::<W>(worker);
         }
+    }
+    new_obj
+}
+
+#[thread_local]
+static mut OBJECTS_TO_SCAN: Vec<ObjectReference> = Vec::new();
+
+pub(crate) extern "C" fn trace_slot<W: ProcessEdgesWork<VM = V8>>(slot: Address, worker: &'static mut GCWorker<V8>) -> ObjectReference {
+    let obj: ObjectReference = unsafe { slot.load() };
+    let tag = obj.to_address().as_usize() & 0b11usize;
+    let mut w = W::new(vec![], false, &SINGLETON);
+    w.set_worker(worker);
+    let object_untagged = unsafe {
+        Address::from_usize(obj.to_address().as_usize() & !0b11usize).to_object_reference()
+    };
+    let new_obj = w.trace_object(object_untagged);
+    if W::OVERWRITE_REFERENCE {
+        unsafe {
+            slot.store((new_obj.to_address().as_usize() & !0b11) | tag);
+        }
+    }
+    unsafe {
+        if OBJECTS_TO_SCAN.is_empty() {
+            OBJECTS_TO_SCAN.reserve(W::CAPACITY);
+        }
+    }
+    for o in &w.nodes {
+        unsafe { OBJECTS_TO_SCAN.push(*o); }
     }
     new_obj
 }

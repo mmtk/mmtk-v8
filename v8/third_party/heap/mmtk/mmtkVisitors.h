@@ -1,8 +1,8 @@
 #ifndef MMTK_VISITORS_H
 #define MMTK_VISITORS_H
 
-#include "src/base/logging.h"
 #include "mmtkUpcalls.h"
+#include "log.h"
 #include <mutex>
 #include <condition_variable>
 #include "src/objects/slots-inl.h"
@@ -223,19 +223,19 @@ class MMTkHeapVerifier: public RootVisitor, public ObjectVisitor {
 class MMTkWeakObjectRetainer: public WeakObjectRetainer {
  public:
   virtual Object RetainAs(Object object) override final {
-    // fprintf(stderr, "RetainAs %p\n", (void*) object.ptr());
+    // LOG("RetainAs %p\n", (void*) object.ptr());
     if (object == Object()) return object;
     HeapObject heap_object = HeapObject::cast(object);
     if (third_party_heap::Heap::IsValidHeapObject(heap_object)) {
       auto f = mmtk_get_forwarded_object(heap_object);
       if (f != nullptr) {
-        // fprintf(stderr, "%p -> %p\n", (void*) object.ptr(), (void*) f);
+        // LOG("%p -> %p\n", (void*) object.ptr(), (void*) f);
         return Object((Address) f);
       }
-      // fprintf(stderr, "%p is dead 1 \n", (void*) object.ptr());
+      // LOG("%p is dead 1 \n", (void*) object.ptr());
       return object;
     } else {
-      // fprintf(stderr, "%p is dead 2 \n", (void*) object.ptr());
+      // LOG("%p is dead 2 \n", (void*) object.ptr());
       return Object();
     }
   }

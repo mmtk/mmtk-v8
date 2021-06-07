@@ -90,7 +90,6 @@ impl<E: ProcessEdgesWork<VM = V8>> GCWork<V8> for ScanAndForwardRoots<E> {
     }
 }
 
-#[thread_local]
 static mut ROOT_OBJECTS: Vec<ObjectReference> = Vec::new();
 
 fn flush_roots<W: ProcessEdgesWork<VM = V8>>(_worker: &mut GCWorker<V8>) {

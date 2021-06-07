@@ -4,6 +4,7 @@
 
 #include "mmtk.h"
 #include "src/heap/heap-inl.h"
+#include "log.h"
 
 namespace v8 {
 namespace internal {
@@ -65,7 +66,7 @@ std::unique_ptr<Heap> Heap::New(v8::internal::Isolate* isolate) {
   // MMTK current default maximum heap size is 1GB.
   auto isolate_created = IsolateCreated.exchange(true);
   DCHECK_WITH_MSG(!isolate_created, "Multiple isolates are not supported.");
-  fprintf(stderr, "New Isolate: %lx\n", (unsigned long) isolate);
+  MMTK_LOG("New Isolate: %lx\n", (unsigned long) isolate);
   MMTk_Heap new_heap = v8_new_heap(&mmtk_upcalls, FIXED_HEAP_SIZE);
   // FIXME
   code_range_ = base::AddressRegion(0x60000000, (0xb0000000- 0x60000000)); // isolate->AddCodeRange(code_range_.begin(), code_range_.size());

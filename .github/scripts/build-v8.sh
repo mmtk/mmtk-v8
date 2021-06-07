@@ -15,4 +15,4 @@ cp $THE_ROOT/.github/scripts/args.gn out/x64.debug-mmtk/
 # generate files according to the copied args file
 gn gen out/x64.debug-mmtk
 # build our V8 setup, named debug-mmtk
-./tools/dev/gm.py x64.debug-mmtk
+./tools/dev/gm.py x64.debug-mmtk.all

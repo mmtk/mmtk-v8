@@ -158,9 +158,10 @@ impl ObjectArchive {
             );
             self.iter_len = self.untagged_objects.len();
         }
-        self.iter_pos += 1;
         if self.iter_pos < self.untagged_objects.len() {
-            self.untagged_objects[self.iter_pos].to_address()
+            let o =    self.untagged_objects[self.iter_pos].to_address();
+            self.iter_pos += 1;
+            o
         } else {
             unsafe { Address::zero() }
         }

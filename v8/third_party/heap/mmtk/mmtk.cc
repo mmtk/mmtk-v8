@@ -67,12 +67,10 @@ std::unique_ptr<Heap> Heap::New(v8::internal::Isolate* isolate) {
   DCHECK_WITH_MSG(!isolate_created, "Multiple isolates are not supported.");
   fprintf(stderr, "New Isolate: %lx\n", (unsigned long) isolate);
   MMTk_Heap new_heap = v8_new_heap(&mmtk_upcalls, FIXED_HEAP_SIZE);
-  tph_mutator_ = reinterpret_cast<BumpAllocator*>(bind_mutator(new_heap, &tph_mutator_));
   // FIXME
   code_range_ = base::AddressRegion(0x60000000, (0xb0000000- 0x60000000)); // isolate->AddCodeRange(code_range_.begin(), code_range_.size());
   auto v8_tph = std::make_unique<Heap>();
   TPHData* tph_data = new TPHData(v8_tph.get(), new_heap, isolate, tph_archive_new());
-  tph_mutator_->tph_data = tph_data;
   tph_data_list->push_back(tph_data);
   return v8_tph;
 }
@@ -121,6 +119,7 @@ const v8::base::AddressRegion& Heap::GetCodeRange() {
 }
 
 bool Heap::CollectGarbage() {
+  v8_heap->increase_gc_count();
   handle_user_collection_request(get_tph_data(this)->mmtk_heap(), (void*) 0);
   return true;
 }

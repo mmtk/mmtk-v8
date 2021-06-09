@@ -28,7 +28,7 @@ jobs:
       # Be aware that any changes made to the following steps should be made to ci-test.sh as well.
       # MMTk core tests the V8 binding by invoking ci-test.sh.
 
-      - name: Build MMTk NOGC
+      - name: Build MMTk NoGC
         run: ./.github/scripts/build-mmtk.sh
 
       - name: Style check Rust

@@ -9,4 +9,4 @@ cd $V8_ROOT/v8
 export PATH=$V8_ROOT/depot_tools:$PATH
 
 # run tests
-tools/dev/gm.py x64.debug-mmtk.checkall
+tools/dev/gm.py x64.optdebug-mmtk.checkall

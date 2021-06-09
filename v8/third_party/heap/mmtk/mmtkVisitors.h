@@ -76,7 +76,9 @@ class MMTkEdgeVisitor: public ObjectVisitor {
 
   virtual void VisitCodeTarget(Code host, RelocInfo* rinfo) override final {
     Code target = Code::GetCodeFromTargetAddress(rinfo->target_address());
-    AddNonMovingEdge(target);
+    DCHECK(!mmtk_is_movable(target));
+    trace_field_((void*) &target, context_);
+    DCHECK_EQ(target, Code::GetCodeFromTargetAddress(rinfo->target_address()));
   }
 
   virtual void VisitEmbeddedPointer(Code host, RelocInfo* rinfo) override final {
@@ -102,14 +104,6 @@ class MMTkEdgeVisitor: public ObjectVisitor {
     if ((*p).GetHeapObject(&object)) {
       PushEdge((void*) p.address());
     }
-  }
-
-  V8_INLINE void AddNonMovingEdge(HeapObject o) {
-    DCHECK(!mmtk_is_movable(o));
-    // TODO: Don't malloc
-    HeapObject* edge = new HeapObject();
-    *edge = o;
-    PushEdge((void*) edge);
   }
 
   V8_INLINE void PushEdge(void* edge) {

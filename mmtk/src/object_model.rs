@@ -26,6 +26,7 @@ impl ObjectModel<V8> for VMObjectModel {
         }
         let to_obj = unsafe { dst.to_object_reference() };
         copy_context.post_copy(to_obj, unsafe { Address::zero() }, bytes, allocator);
+        unsafe { ((*UPCALLS).on_move_event)(from, to_obj, bytes) };
         to_obj
     }
 

@@ -123,6 +123,12 @@ static size_t mmtk_get_object_size(void* object) {
   return o.SizeFromMap(m);
 }
 
+static void mmtk_on_move_event(void* from_address, void* to_address, size_t size) {
+  auto from = HeapObject::FromAddress((Address) from_address);
+  auto to = HeapObject::FromAddress((Address) to_address);
+  v8_heap->OnMoveEvent(to, from, (int) size);
+}
+
 static void mmtk_scan_roots(TraceRootFn trace_root, void* context) {
   main_thread_synchronizer->RunMainThreadTask([=]() {
     MMTkRootVisitor root_visitor(v8_heap, trace_root, context);
@@ -158,6 +164,7 @@ V8_Upcalls mmtk_upcalls = {
   mmtk_scan_roots,
   mmtk_scan_objects,
   mmtk_process_weak_refs,
+  mmtk_on_move_event,
 };
 }   // namespace third_party_heap
 }  // namespace internal

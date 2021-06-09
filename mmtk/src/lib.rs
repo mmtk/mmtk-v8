@@ -56,6 +56,7 @@ pub struct V8_Upcalls {
     pub scan_roots: extern "C" fn(trace_root: TraceRootFn, context: *mut c_void),
     pub scan_objects: extern "C" fn(objects: *const ObjectReference, count: usize, process_edges: ProcessEdgesFn, trace_field: TraceFieldFn, context: *mut c_void),
     pub process_weak_refs: extern "C" fn(),
+    pub on_move_event: extern "C" fn(from: ObjectReference, to: ObjectReference, size: usize),
 }
 
 pub static mut UPCALLS: *const V8_Upcalls = null_mut();

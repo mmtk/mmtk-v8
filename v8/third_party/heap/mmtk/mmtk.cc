@@ -77,13 +77,19 @@ MMTk_Heap GetMMTkHeap(Address object_pointer) {
 
 static std::atomic_bool IsolateCreated { false };
 
+#define GB (1ull << 30)
+#define FIXED_HEAP_SIZE (1ull * GB)
+
+size_t Heap::Capacity() {
+  return FIXED_HEAP_SIZE;
+}
+
 std::unique_ptr<Heap> Heap::New(v8::internal::Isolate* isolate) {
   // MMTK current default maximum heap size is 1GB.
   auto isolate_created = IsolateCreated.exchange(true);
   DCHECK_WITH_MSG(!isolate_created, "Multiple isolates are not supported.");
   fprintf(stderr, "New Isolate: %lx\n", (unsigned long) isolate);
-  const size_t GB = 1u << 30;
-  MMTk_Heap new_heap = v8_new_heap(&mmtk_upcalls, GB);
+  MMTk_Heap new_heap = v8_new_heap(&mmtk_upcalls, FIXED_HEAP_SIZE);
   tph_mutator_ = reinterpret_cast<BumpAllocator*>(bind_mutator(new_heap, &tph_mutator_));
   // FIXME
   code_range_ = base::AddressRegion(0x60000000, (0xb0000000- 0x60000000)); // isolate->AddCodeRange(code_range_.begin(), code_range_.size());
@@ -114,10 +120,22 @@ AllocationResult Heap::Allocate(size_t size_in_bytes, AllocationType type, Alloc
   TPHData* tph_data_ = get_tph_data(this);
   bool large_object = size_in_bytes > kMaxRegularHeapObjectSize;
   size_t align_bytes = (type == AllocationType::kCode) ? kCodeAlignment : (align == kWordAligned) ? kSystemPointerSize : (align == kDoubleAligned) ? kDoubleSize : kSystemPointerSize;
+  // Get MMTk space that the object should be allocated to.
   int space = (type == AllocationType::kCode) ? 3 : (type == AllocationType::kReadOnly) ? 4 : (large_object) ? 2 : 0;
   Address result =
       reinterpret_cast<Address>(alloc(tph_mutator_, size_in_bytes, align_bytes, 0, space));
-  tph_archive_insert(tph_data_->archive(), reinterpret_cast<void*>(result), tph_data_->isolate(), uint8_t(space));
+  // Remember the V8 internal `AllocationSpace` for this object.
+  // This is required to pass various V8 internal space checks.
+  // TODO(wenyuzhao): Use MMTk's vm-specific spaces for allocation instead of remembering the `AllocationSpace`s.
+  AllocationSpace allocation_space;
+  if (type == AllocationType::kCode) {
+    allocation_space = large_object ? CODE_LO_SPACE : CODE_SPACE;
+  } else if (type == AllocationType::kReadOnly) {
+    allocation_space = RO_SPACE;
+  } else {
+    allocation_space = large_object ? LO_SPACE : OLD_SPACE;
+  }
+  tph_archive_insert(tph_data_->archive(), reinterpret_cast<void*>(result), tph_data_->isolate(), uint8_t(allocation_space));
   HeapObject rtn = HeapObject::FromAddress(result);
   return rtn;
 }
@@ -137,43 +155,39 @@ bool Heap::CollectGarbage() {
   return true;
 }
 
-bool Heap::InCodeSpace(Address address) {
-  for (size_t i = 0; i < tph_data_list->size(); i++)
-  {
-    TPHData* tph_data_ = reinterpret_cast<TPHData*>((*tph_data_list)[i]);
-    uint8_t space = tph_archive_obj_to_space(
-          tph_data_->archive(), reinterpret_cast<void*>(address));
-    if (space == 255) continue;
-    if (space == 3) return true;
-    else return false;
+// Uninitialized space tag
+constexpr AllocationSpace kNoSpace = AllocationSpace(255);
+
+// Checks whether the address is *logically* in the allocation_space.
+// This does not related the real MMTk space that contains the address,
+// but the V8 internal space expected by the runtime.
+//
+// TODO: Currently we record the space tag for each object. In the future we
+// need to link each allocation_space to a real MMTk space.
+bool Heap::InSpace(Address address, AllocationSpace allocation_space) {
+  for (auto tph_data : *tph_data_list) {
+    auto space = AllocationSpace(tph_archive_obj_to_space(tph_data->archive(), reinterpret_cast<void*>(address)));
+    if (space == kNoSpace) continue;
+    return space == allocation_space;
   }
   UNREACHABLE();
+}
+
+bool Heap::InOldSpace(Address address) {
+  return InSpace(address, OLD_SPACE);
+}
+
+
+bool Heap::InCodeSpace(Address address) {
+  return InSpace(address, CODE_SPACE);
 }
 
 bool Heap::InReadOnlySpace(Address address) {
-  for (size_t i = 0; i < tph_data_list->size(); i++)
-  {
-    TPHData* tph_data_ = reinterpret_cast<TPHData*>((*tph_data_list)[i]);
-    uint8_t space = tph_archive_obj_to_space(
-          tph_data_->archive(), reinterpret_cast<void*>(address));
-    if (space == 255) continue;
-    if (space == 4) return true;
-    else return false;
-  }
-  UNREACHABLE();
+  return InSpace(address, RO_SPACE);
 }
 
 bool Heap::InLargeObjectSpace(Address address) {
-  for (size_t i = 0; i < tph_data_list->size(); i++)
-  {
-    TPHData* tph_data_ = reinterpret_cast<TPHData*>((*tph_data_list)[i]);
-    uint8_t space = tph_archive_obj_to_space(
-          tph_data_->archive(), reinterpret_cast<void*>(address));
-    if (space == 255) continue;
-    if (space == 2) return true;
-    else return false;
-  }
-  UNREACHABLE();
+  return InSpace(address, LO_SPACE);
 }
 
 bool Heap::IsValidHeapObject(HeapObject object) {

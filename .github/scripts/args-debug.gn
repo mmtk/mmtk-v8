@@ -15,13 +15,12 @@ v8_enable_fast_mksnapshot = true
 v8_enable_verify_csa = true
 v8_enable_slow_dchecks = false
 v8_optimized_debug = false
-v8_disable_write_barriers = true
-v8_enable_single_generation = true
-v8_enable_shared_ro_heap = false
-v8_enable_pointer_compression = false
+
 v8_enable_third_party_heap = true
-v8_third_party_heap_files = [ "$the_root/v8/third_party/heap/mmtk/mmtk.cc", 
-"$the_root/v8/third_party/heap/mmtk/mmtk.h",
-"$the_root/v8/third_party/heap/mmtk/mmtkUpcalls.h",
-"$the_root/v8/third_party/heap/mmtk/mmtkUpcalls.cc"]
+v8_third_party_heap_files = [
+    "$the_root/v8/third_party/heap/mmtk/mmtk.cc",
+    "$the_root/v8/third_party/heap/mmtk/mmtk.h",
+    "$the_root/v8/third_party/heap/mmtk/mmtkUpcalls.h",
+    "$the_root/v8/third_party/heap/mmtk/mmtkUpcalls.cc"
+]
 v8_third_party_heap_libs = [ "$the_root/mmtk/target/debug/libmmtk_v8.so" ]

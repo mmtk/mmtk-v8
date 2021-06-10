@@ -237,9 +237,10 @@ impl ObjectArchive {
             );
             self.iter_len = lst.len();
         }
-        self.iter_pos += 1;
         if self.iter_pos < lst.len() {
-            unsafe { Address::from_usize(lst[self.iter_pos]) }
+            let obj = unsafe { Address::from_usize(lst[self.iter_pos]) };
+            self.iter_pos += 1;
+            obj
         } else {
             unsafe { Address::zero() }
         }

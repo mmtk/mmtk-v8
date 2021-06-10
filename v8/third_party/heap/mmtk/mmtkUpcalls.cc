@@ -5,7 +5,7 @@
 #include "src/deoptimizer/deoptimizer.h"
 #include "src/execution/frames-inl.h"
 #include "src/regexp/regexp.h"
-#include "mmtkVisitors.h"
+#include "mmtk-visitors.h"
 #include "main-thread-sync.h"
 #include "log.h"
 

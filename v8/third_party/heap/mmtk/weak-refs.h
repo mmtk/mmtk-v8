@@ -19,8 +19,28 @@ extern v8::internal::Heap* v8_heap;
 namespace mmtk {
 
 namespace i = v8::internal;
+namespace base = v8::base;
 namespace tph = v8::internal::third_party_heap;
 
+bool is_live(i::HeapObject o) {
+  return is_live_object(reinterpret_cast<void*>(o.address()));
+}
+
+i::MaybeObject to_weakref(i::HeapObject o) {
+  DCHECK(o.IsStrong());
+  return i::MaybeObject::MakeWeak(i::MaybeObject::FromObject(o));
+}
+
+base::Optional<i::HeapObject> get_forwarded_ref(i::HeapObject o) {
+  DCHECK(o.IsStrong());
+  auto f = mmtk_get_forwarded_object(o);
+  if (f != nullptr) {
+    auto x = i::HeapObject::cast(i::Object((i::Address) f));
+    DCHECK(o.IsStrong());
+    return x;
+  }
+  return base::nullopt;
+}
 
 class MMTkWeakObjectRetainer: public i::WeakObjectRetainer {
  public:
@@ -61,10 +81,13 @@ class InternalizedStringTableCleaner : public i::RootVisitor {
       if (o.IsHeapObject()) {
         auto heap_object = i::HeapObject::cast(o);
         DCHECK(!i::Heap::InYoungGeneration(heap_object));
-        if (!is_live_object(reinterpret_cast<void*>(heap_object.address()))) {
+        if (!is_live(heap_object)) {
           pointers_removed_++;
           // Set the entry to the_hole_value (as deleted).
           p.store(i::StringTable::deleted_element());
+        } else {
+          auto forwarded = get_forwarded_ref(heap_object);
+          if (forwarded) p.store(*forwarded);
         }
       }
     }
@@ -88,7 +111,7 @@ class ExternalStringTableCleaner : public i::RootVisitor {
       i::Object o = *p;
       if (o.IsHeapObject()) {
         auto heap_object = i::HeapObject::cast(o);
-        if (!is_live_object(reinterpret_cast<void*>(heap_object.address()))) {
+        if (!is_live(heap_object)) {
           if (o.IsExternalString()) {
             heap_->FinalizeExternalString(i::String::cast(o));
           } else {
@@ -97,6 +120,9 @@ class ExternalStringTableCleaner : public i::RootVisitor {
           }
           // Set the entry to the_hole_value (as deleted).
           p.store(the_hole);
+        } else {
+          auto forwarded = get_forwarded_ref(heap_object);
+          if (forwarded) p.store(*forwarded);
         }
       }
     }
@@ -168,6 +194,9 @@ class WeakRefs {
     DCHECK(is_live(inferred_name));
     DCHECK(is_live(uncompiled_data));
 
+    auto forwarded = get_forwarded_ref(uncompiled_data);
+    if (forwarded) uncompiled_data = i::UncompiledData::cast(*forwarded);
+
     // Use the raw function data setter to avoid validity checks, since we're
     // performing the unusual task of decompiling.
     shared_info.set_function_data(uncompiled_data, v8::kReleaseStore);
@@ -180,8 +209,10 @@ class WeakRefs {
     while (weak_objects_.bytecode_flushing_candidates.Pop(kMainThreadTask, &flushing_candidate)) {
       // If the BytecodeArray is dead, flush it, which will replace the field with
       // an uncompiled data object.
-      if (!is_live_object(reinterpret_cast<void*>(flushing_candidate.GetBytecodeArray(heap()->isolate()).address()))) {
+      if (!is_live(flushing_candidate.GetBytecodeArray(heap()->isolate()))) {
         FlushBytecodeFromSFI(flushing_candidate);
+      } else {
+        DCHECK(!get_forwarded_ref(flushing_candidate.GetBytecodeArray(heap()->isolate())));
       }
       // Now record the slot, which has either been updated to an uncompiled data,
       // or is the BytecodeArray which is still alive.
@@ -221,6 +252,9 @@ class WeakRefs {
           }
           auto parent = i::Map::cast(map.constructor_or_back_pointer());
           bool parent_is_alive = is_live(parent);
+          if (parent_is_alive) {
+            DCHECK(!get_forwarded_ref(parent));
+          }
           auto descriptors = parent_is_alive ? parent.instance_descriptors(isolate()) : i::DescriptorArray();
           bool descriptors_owner_died = CompactTransitionArray(parent, array, descriptors);
           if (descriptors_owner_died) {
@@ -241,6 +275,8 @@ class WeakRefs {
         return false;
       } else if (!is_live(i::TransitionsAccessor::GetTargetFromRaw(raw_target))) {
         return true;
+      } else {
+        DCHECK(!get_forwarded_ref(i::TransitionsAccessor::GetTargetFromRaw(raw_target)));
       }
     }
     return false;
@@ -265,6 +301,7 @@ class WeakRefs {
           descriptors_owner_died = true;
         }
       } else {
+        DCHECK(!get_forwarded_ref(target));
         if (i != transition_index) {
           i::Name key = transitions.GetKey(i);
           transitions.SetKey(transition_index, key);
@@ -356,6 +393,8 @@ class WeakRefs {
         auto key = i::HeapObject::cast(table.KeyAt(i));
         if (!is_live(key)) {
           table.RemoveEntry(i);
+        } else {
+          DCHECK(!get_forwarded_ref(key));
         }
       }
     }
@@ -363,6 +402,7 @@ class WeakRefs {
       if (!is_live(it->first)) {
         it = heap()->ephemeron_remembered_set_.erase(it);
       } else {
+        DCHECK(!get_forwarded_ref(it->first));
         ++it;
       }
     }
@@ -381,6 +421,8 @@ class WeakRefs {
         if (is_live(value)) {
           // The value of the weak reference is alive.
           // RecordSlot(slot.first, HeapObjectSlot(location), value);
+          auto forwarded = get_forwarded_ref(value);
+          if (forwarded) location.store(to_weakref(*forwarded));
         } else {
           if (value.IsMap()) {
             // The map is non-live.
@@ -398,6 +440,9 @@ class WeakRefs {
     if (potential_parent.IsMap()) {
       auto parent = i::Map::cast(potential_parent);
       i::DisallowGarbageCollection no_gc_obviously;
+      if (is_live(parent)) {
+          DCHECK(!get_forwarded_ref(parent));
+      }
       if (is_live(parent) && i::TransitionsAccessor(isolate(), parent, &no_gc_obviously).HasSimpleTransitionTo(dead_target)) {
         ClearPotentialSimpleMapTransition(parent, dead_target);
       }
@@ -424,6 +469,8 @@ class WeakRefs {
       if (!is_live(target)) {
         weak_ref.set_target(i::ReadOnlyRoots(isolate()).undefined_value());
       } else {
+        auto forwarded = get_forwarded_ref(weak_ref.target());
+        if (forwarded) weak_ref.set_target(*forwarded);
         // The value of the JSWeakRef is alive.
         // i::ObjectSlot slot = weak_ref.RawField(JSWeakRef::kTargetOffset);
         // RecordSlot(weak_ref, slot, target);
@@ -451,6 +498,7 @@ class WeakRefs {
         DCHECK(finalization_registry.NeedsCleanup());
         DCHECK(finalization_registry.scheduled_for_cleanup());
       } else {
+        DCHECK(!get_forwarded_ref(target));
         // The value of the WeakCell is alive.
         // i::ObjectSlot slot = weak_cell.RawField(WeakCell::kTargetOffset);
         // RecordSlot(weak_cell, slot, HeapObject::cast(*slot));
@@ -472,6 +520,7 @@ class WeakRefs {
             },
             gc_notify_updated_slot);
       } else {
+        DCHECK(!get_forwarded_ref(unregister_token));
         // The unregister_token is alive.
         // ObjectSlot slot = weak_cell.RawField(WeakCell::kUnregisterTokenOffset);
         // RecordSlot(weak_cell, slot, HeapObject::cast(*slot));
@@ -492,15 +541,14 @@ class WeakRefs {
         }
         code.ClearEmbeddedObjects(heap());
         DCHECK(code.embedded_objects_cleared());
+      } else if (is_live(object)) {
+        DCHECK(!get_forwarded_ref(object));
       }
     }
   }
 
   bool have_code_to_deoptimize_ = false;
  public:
-  static bool is_live(i::HeapObject o) {
-    return is_live_object(reinterpret_cast<void*>(o.address()));
-  }
   static i::Isolate* isolate() {
     return heap()->isolate();
   }

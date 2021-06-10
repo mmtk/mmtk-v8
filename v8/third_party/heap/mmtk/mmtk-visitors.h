@@ -120,7 +120,7 @@ class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
           // concrete_visitor()->RecordSlot(table, value_slot, value);
           // Revisit ephemerons with both key and value unreachable at end
           // of concurrent marking cycle.
-          if (!WeakRefs::is_live(value)) {
+          if (!mmtk::is_live(value)) {
             weak_objects_->discovered_ephemerons.Push(task_id_, i::Ephemeron{key, value});
           }
         }
@@ -135,11 +135,11 @@ class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
   }
 
   virtual void VisitPointers(i::HeapObject host, i::ObjectSlot start, i::ObjectSlot end) override final {
-    for (auto p = start; p < end; ++p) ProcessEdge(p);
+    for (auto p = start; p < end; ++p) ProcessEdge2(host, p);
   }
 
   virtual void VisitPointers(i::HeapObject host, i::MaybeObjectSlot start, i::MaybeObjectSlot end) override final {
-    for (auto p = start; p < end; ++p) ProcessEdge(p);
+    for (auto p = start; p < end; ++p) ProcessEdge2(host, p);
   }
 
   virtual void VisitCodeTarget(i::Code host, i::RelocInfo* rinfo) override final {
@@ -171,6 +171,18 @@ class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
     i::HeapObject object;
     if ((*p).GetHeapObject(&object)) {
       PushEdge((void*) p.address());
+    }
+  }
+
+  template<class TSlot>
+  V8_INLINE void ProcessEdge2(i::HeapObject host, TSlot slot) {
+    i::HeapObject object;
+    if ((*slot).GetHeapObjectIfStrong(&object)) {
+      PushEdge((void*) slot.address());
+    } else if (TSlot::kCanBeWeak && (*slot).GetHeapObjectIfWeak(&object)) {
+      // ProcessWeakHeapObject(host, THeapObjectSlot(slot), heap_object);
+      i::HeapObjectSlot s = i::HeapObjectSlot(slot.address());
+      weak_objects_->weak_references.Push(task_id_, std::make_pair(host, s));
     }
   }
 

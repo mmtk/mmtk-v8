@@ -3,6 +3,8 @@
 #include "src/heap/safepoint.h"
 #include "src/heap/array-buffer-sweeper.h"
 #include "src/deoptimizer/deoptimizer.h"
+#include "src/objects/embedder-data-array-inl.h"
+#include "src/objects/js-collection-inl.h"
 #include "src/execution/frames-inl.h"
 #include "src/regexp/regexp.h"
 #include "mmtk-visitors.h"
@@ -143,6 +145,7 @@ static void mmtk_scan_objects(void** objects, size_t count, ProcessEdgesFn proce
     DCHECK_EQ(((Address) ptr) & 1, 0);
     auto obj = HeapObject::FromAddress(((Address) ptr));
     obj.Iterate(&visitor);
+    visitor.Visit(obj);
   }
 }
 

@@ -25,7 +25,7 @@ static void mmtk_stop_all_mutators(void *tls) {
   main_thread_synchronizer->RunMainThreadTask([=]() {
     main_thread_synchronizer->EnterSafepoint(v8_heap);
     MMTK_LOG("[mmtk_stop_all_mutators] Verify heap\n");
-    MMTkHeapVerifier::Verify(v8_heap);
+    mmtk::MMTkHeapVerifier::Verify(v8_heap);
     MMTK_LOG("[mmtk_stop_all_mutators] Flush cache\n");
     v8_heap->isolate()->descriptor_lookup_cache()->Clear();
     RegExpResultsCache::Clear(v8_heap->string_split_cache());
@@ -50,7 +50,7 @@ static void mmtk_resume_mutators(void *tls) {
   MMTK_LOG("[mmtk_resume_mutators] START\n");
   main_thread_synchronizer->RunMainThreadTask([=]() {
     MMTK_LOG("[mmtk_resume_mutators] Verify heap\n");
-    MMTkHeapVerifier::Verify(v8_heap);
+    mmtk::MMTkHeapVerifier::Verify(v8_heap);
     MMTK_LOG("[mmtk_resume_mutators] Flush cache\n");
     v8_heap->isolate()->inner_pointer_to_code_cache()->Flush();
     // The stub caches are not traversed during GC; clear them to force
@@ -133,13 +133,13 @@ static void mmtk_on_move_event(void* from_address, void* to_address, size_t size
 
 static void mmtk_scan_roots(TraceRootFn trace_root, void* context) {
   main_thread_synchronizer->RunMainThreadTask([=]() {
-    MMTkRootVisitor root_visitor(v8_heap, trace_root, context);
+    mmtk::MMTkRootVisitor root_visitor(v8_heap, trace_root, context);
     v8_heap->IterateRoots(&root_visitor, {});
   });
 }
 
 static void mmtk_scan_objects(void** objects, size_t count, ProcessEdgesFn process_edges, TraceFieldFn trace_field, void* context) {
-  MMTkEdgeVisitor visitor(v8_heap, process_edges, trace_field,  context);
+  mmtk::MMTkEdgeVisitor visitor(v8_heap, process_edges, trace_field,  context);
   for (size_t i = 0; i < count; i++) {
     auto ptr = *(objects + i);
     DCHECK_EQ(((Address) ptr) & 1, 0);

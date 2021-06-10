@@ -8,6 +8,7 @@
 #include "mmtk-visitors.h"
 #include "main-thread-sync.h"
 #include "log.h"
+#include "weak-refs.h"
 
 namespace v8 {
 namespace internal {
@@ -39,8 +40,7 @@ static void mmtk_stop_all_mutators(void *tls) {
 static void mmtk_process_weak_refs() {
   main_thread_synchronizer->RunMainThreadTask([=]() {
     MMTK_LOG("[mmtk_process_weak_refs]\n");
-    MMTkWeakObjectRetainer retainer;
-    v8_heap->ProcessAllWeakReferences(&retainer);
+    mmtk::global_weakref_processor->ClearNonLiveReferences();
   });
 }
 

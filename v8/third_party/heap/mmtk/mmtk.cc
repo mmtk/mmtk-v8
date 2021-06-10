@@ -125,7 +125,9 @@ const v8::base::AddressRegion& Heap::GetCodeRange() {
 
 bool Heap::CollectGarbage() {
   v8_heap->increase_gc_count();
+  v8_heap->SetGCState(v8::internal::Heap::MARK_COMPACT);
   handle_user_collection_request(get_tph_data(this)->mmtk_heap(), (void*) 0);
+  v8_heap->SetGCState(v8::internal::Heap::NOT_IN_GC);
   return true;
 }
 

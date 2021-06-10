@@ -17,7 +17,7 @@ jobs:
           # CI_ACCESS_TOKEN is a secret set with the repo
           token: ${{ secrets.CI_ACCESS_TOKEN }}
           submodules: true
-      
+
       - name: Set env vars
         run: |
           echo "RUSTUP_TOOLCHAIN=`cat mmtk/rust-toolchain`" >> $GITHUB_ENV
@@ -28,28 +28,17 @@ jobs:
       # Be aware that any changes made to the following steps should be made to ci-test.sh as well.
       # MMTk core tests the V8 binding by invoking ci-test.sh.
 
-      
-      - name: Build MMTk NOGC
+      - name: Build MMTk NoGC
         run: ./.github/scripts/build-mmtk.sh
-      
+
       - name: Style check Rust
         run: ./.github/scripts/ci-style.sh
-        
+
       - name: Get V8 Sources
         run: ./.github/scripts/get-v8.sh
-      
+
       - name: Build V8 with MMTk
         run: ./.github/scripts/build-v8.sh
-      
-      # The following two steps are currently failing, so they are not included in ci-test.sh.
-      # Once they pass, we should add them to ci-test.sh      
-      - name: Run V8 regression Tests
-        run: ./.github/scripts/run-regress.sh
-        continue-on-error: true
-        
-      - name: Run V8 unittests Tests
-        run: ./.github/scripts/run-unittests.sh
-        continue-on-error: true
-      
-      - name: Run V8 Benchmark Tests
-        run: ./.github/scripts/run-benchmarks.sh
+
+      - name: Run V8 Tests
+        run: ./.github/scripts/test-v8.sh

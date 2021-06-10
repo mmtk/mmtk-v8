@@ -4,4 +4,4 @@ set -ex
 export THE_ROOT=`realpath $(dirname "$0")/../..`
 
 # Test with a specific revision.
-export V8_VERSION=dd80f2e4cf4fd254c389d6fee58dc8d44d84fed0
+export V8_VERSION=191b637f28c0e2c6ca5f2d6ac89377039a754337

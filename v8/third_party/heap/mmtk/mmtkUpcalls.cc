@@ -131,15 +131,15 @@ static void mmtk_on_move_event(void* from_address, void* to_address, size_t size
   v8_heap->OnMoveEvent(to, from, (int) size);
 }
 
-static void mmtk_scan_roots(TraceRootFn trace_root, void* context) {
+static void mmtk_scan_roots(TraceRootFn trace_root, void* context, int task_id) {
   main_thread_synchronizer->RunMainThreadTask([=]() {
-    mmtk::MMTkRootVisitor root_visitor(v8_heap, trace_root, context);
+    mmtk::MMTkRootVisitor root_visitor(v8_heap, trace_root, context, task_id);
     v8_heap->IterateRoots(&root_visitor, {});
   });
 }
 
-static void mmtk_scan_objects(void** objects, size_t count, ProcessEdgesFn process_edges, TraceFieldFn trace_field, void* context) {
-  mmtk::MMTkEdgeVisitor visitor(v8_heap, process_edges, trace_field,  context);
+static void mmtk_scan_objects(void** objects, size_t count, ProcessEdgesFn process_edges, TraceFieldFn trace_field, void* context, int task_id) {
+  mmtk::MMTkEdgeVisitor visitor(v8_heap, process_edges, trace_field,  context, task_id);
   for (size_t i = 0; i < count; i++) {
     auto ptr = *(objects + i);
     DCHECK_EQ(((Address) ptr) & 1, 0);

@@ -40,7 +40,7 @@ impl Scanning<V8> for VMScanning {
                 OBJECTS_TO_SCAN = vec![];
                 let buf = objects.as_ptr();
                 let len = objects.len();
-                ((*UPCALLS).scan_objects)(buf, len, create_process_edges_work::<W> as _, trace_slot::<W> as _, worker as *mut _ as _);
+                ((*UPCALLS).scan_objects)(buf, len, create_process_edges_work::<W> as _, trace_slot::<W> as _, worker as *mut _ as _, worker.ordinal);
             }
         }
     }
@@ -81,7 +81,7 @@ impl<E: ProcessEdgesWork<VM = V8>> GCWork<V8> for ScanAndForwardRoots<E> {
     fn do_work(&mut self, worker: &mut GCWorker<V8>, _mmtk: &'static MMTK<V8>) {
         unsafe {
             debug_assert!(ROOT_OBJECTS.is_empty());
-            ((*UPCALLS).scan_roots)(trace_root::<E> as _, worker as *mut _ as _);
+            ((*UPCALLS).scan_roots)(trace_root::<E> as _, worker as *mut _ as _, worker.ordinal);
             if !ROOT_OBJECTS.is_empty() {
                 flush_roots::<E>(worker);
             }

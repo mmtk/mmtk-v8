@@ -24,8 +24,11 @@ namespace tph = v8::internal::third_party_heap;
 
 class MMTkRootVisitor: public i::RootVisitor {
  public:
-  explicit MMTkRootVisitor(i::Heap* heap, TraceRootFn trace_root, void* context): heap_(heap), trace_root_(trace_root), context_(context) {
+  explicit MMTkRootVisitor(i::Heap* heap, TraceRootFn trace_root, void* context, int task_id)
+      : heap_(heap), trace_root_(trace_root), context_(context), task_id_(task_id) {
     USE(heap_);
+    USE(task_id_);
+    DCHECK(task_id <= 8);
   }
 
   virtual void VisitRootPointer(i::Root root, const char* description, i::FullObjectSlot p) override final {
@@ -51,12 +54,15 @@ class MMTkRootVisitor: public i::RootVisitor {
   v8::internal::Heap* heap_;
   TraceRootFn trace_root_;
   void* context_;
+  int task_id_;
 };
 
 class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
  public:
-  explicit MMTkEdgeVisitor(i::Heap* heap, ProcessEdgesFn process_edges, TraceFieldFn trace_field, void* context): heap_(heap), process_edges_(process_edges), trace_field_(trace_field), context_(context) {
+  explicit MMTkEdgeVisitor(i::Heap* heap, ProcessEdgesFn process_edges, TraceFieldFn trace_field, void* context, int task_id)
+      : heap_(heap), process_edges_(process_edges), trace_field_(trace_field), context_(context), task_id_(task_id) {
     USE(heap_);
+    DCHECK(task_id <= 8);
     NewBuffer buf = process_edges(NULL, 0, 0);
     buffer_ = buf.buf;
     cap_ = buf.cap;
@@ -67,17 +73,6 @@ class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
     if (buffer_ != NULL) {
       release_buffer(buffer_, cursor_, cap_);
     }
-    weak_objects_->transition_arrays.FlushToGlobal(task_id_);
-    weak_objects_->ephemeron_hash_tables.FlushToGlobal(task_id_);
-    weak_objects_->current_ephemerons.FlushToGlobal(task_id_);
-    weak_objects_->next_ephemerons.FlushToGlobal(task_id_);
-    weak_objects_->discovered_ephemerons.FlushToGlobal(task_id_);
-    weak_objects_->weak_references.FlushToGlobal(task_id_);
-    weak_objects_->js_weak_refs.FlushToGlobal(task_id_);
-    weak_objects_->weak_cells.FlushToGlobal(task_id_);
-    weak_objects_->weak_objects_in_code.FlushToGlobal(task_id_);
-    weak_objects_->bytecode_flushing_candidates.FlushToGlobal(task_id_);
-    weak_objects_->flushed_js_functions.FlushToGlobal(task_id_);
   }
 
   V8_INLINE void VisitSharedFunctionInfo(i::Map map, i::SharedFunctionInfo shared_info) {
@@ -208,7 +203,7 @@ class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
   size_t cap_ = 0;
   size_t cursor_ = 0;
   i::WeakObjects* weak_objects_ = mmtk::global_weakref_processor->weak_objects();
-  int task_id_ = 1;
+  int task_id_;
 };
 
 

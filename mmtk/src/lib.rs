@@ -9,6 +9,7 @@ extern crate lazy_static;
 #[macro_use]
 extern crate log;
 
+use std::env;
 use std::ptr::null_mut;
 
 use libc::c_void;
@@ -53,8 +54,8 @@ pub struct V8_Upcalls {
     pub get_object_size: extern "C" fn(object: ObjectReference) -> usize,
     pub get_mmtk_mutator: extern "C" fn(tls: VMMutatorThread) -> *mut Mutator<V8>,
     pub is_mutator: extern "C" fn(tls: VMThread) -> bool,
-    pub scan_roots: extern "C" fn(trace_root: TraceRootFn, context: *mut c_void),
-    pub scan_objects: extern "C" fn(objects: *const ObjectReference, count: usize, process_edges: ProcessEdgesFn, trace_field: TraceFieldFn, context: *mut c_void),
+    pub scan_roots: extern "C" fn(trace_root: TraceRootFn, context: *mut c_void, task_id: usize),
+    pub scan_objects: extern "C" fn(objects: *const ObjectReference, count: usize, process_edges: ProcessEdgesFn, trace_field: TraceFieldFn, context: *mut c_void, task_id: usize),
     pub process_weak_refs: extern "C" fn(),
     pub on_move_event: extern "C" fn(from: ObjectReference, to: ObjectReference, size: usize),
 }
@@ -76,6 +77,13 @@ impl VMBinding for V8 {
 
 lazy_static! {
     pub static ref SINGLETON: MMTK<V8> = {
+        if let Ok(threads) = env::var("MMTK_THREADS").map(|x| x.parse::<usize>().unwrap()) {
+            if threads > 8 {
+                env::set_var("MMTK_THREADS", "8");
+            }
+        } else {
+            env::set_var("MMTK_THREADS", "8");
+        }
         MMTK::new()
     };
 }

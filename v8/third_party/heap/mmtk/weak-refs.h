@@ -548,6 +548,23 @@ class WeakRefs {
   }
 
   bool have_code_to_deoptimize_ = false;
+
+  void Flush() {
+    for (int i = 0; i < 8; i++) {
+      weak_objects_.transition_arrays.FlushToGlobal(i);
+      weak_objects_.ephemeron_hash_tables.FlushToGlobal(i);
+      weak_objects_.current_ephemerons.FlushToGlobal(i);
+      weak_objects_.next_ephemerons.FlushToGlobal(i);
+      weak_objects_.discovered_ephemerons.FlushToGlobal(i);
+      weak_objects_.weak_references.FlushToGlobal(i);
+      weak_objects_.js_weak_refs.FlushToGlobal(i);
+      weak_objects_.weak_cells.FlushToGlobal(i);
+      weak_objects_.weak_objects_in_code.FlushToGlobal(i);
+      weak_objects_.bytecode_flushing_candidates.FlushToGlobal(i);
+      weak_objects_.flushed_js_functions.FlushToGlobal(i);
+    }
+  }
+
  public:
   static i::Isolate* isolate() {
     return heap()->isolate();
@@ -560,6 +577,7 @@ class WeakRefs {
   }
 
   void ClearNonLiveReferences() {
+    Flush();
     have_code_to_deoptimize_ = false;
     {
       // TRACE_GC(heap()->tracer(), GCTracer::Scope::MC_CLEAR_STRING_TABLE);

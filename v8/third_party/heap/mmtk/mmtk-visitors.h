@@ -45,6 +45,7 @@ class MMTkRootVisitor: public i::RootVisitor {
 
  private:
   V8_INLINE void ProcessRootEdge(i::Root root, i::FullObjectSlot slot) {
+    DCHECK(!i::HasWeakHeapObjectTag(*slot));
     i::HeapObject object;
     if ((*slot).GetHeapObject(&object)) {
       trace_root_((void*) slot.address(), context_);
@@ -123,6 +124,17 @@ class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
     }
   }
 
+  void VisitWeakCell(i::Map map, i::WeakCell weak_cell) {
+    auto target = weak_cell.relaxed_target();
+    auto unregister_token = weak_cell.relaxed_unregister_token();
+    if (!mmtk::is_live(target) || !mmtk::is_live(unregister_token)) {
+      // WeakCell points to a potentially dead object or a dead unregister
+      // token. We have to process them when we know the liveness of the whole
+      // transitive closure.
+      weak_objects_->weak_cells.Push(task_id_, weak_cell);
+    }
+  }
+
   void VisitJSWeakRef(i::Map map, i::JSWeakRef weak_ref) {
     if (weak_ref.target().IsHeapObject()) {
       weak_objects_->js_weak_refs.Push(task_id_, weak_ref);
@@ -130,11 +142,11 @@ class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
   }
 
   virtual void VisitPointers(i::HeapObject host, i::ObjectSlot start, i::ObjectSlot end) override final {
-    for (auto p = start; p < end; ++p) ProcessEdge2(host, p);
+    for (auto p = start; p < end; ++p) ProcessEdge(host, p);
   }
 
   virtual void VisitPointers(i::HeapObject host, i::MaybeObjectSlot start, i::MaybeObjectSlot end) override final {
-    for (auto p = start; p < end; ++p) ProcessEdge2(host, p);
+    for (auto p = start; p < end; ++p) ProcessEdge(host, p);
   }
 
   virtual void VisitCodeTarget(i::Code host, i::RelocInfo* rinfo) override final {
@@ -153,24 +165,12 @@ class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
   }
 
   virtual void VisitMapPointer(i::HeapObject host) override final {
-    ProcessEdge(host.map_slot());
+    ProcessEdge(host, host.map_slot());
   }
 
  private:
-  V8_INLINE void ProcessRootEdge(i::Root root, i::FullObjectSlot p) {
-    ProcessEdge(p);
-  }
-
-  template<class T>
-  V8_INLINE void ProcessEdge(T p) {
-    i::HeapObject object;
-    if ((*p).GetHeapObject(&object)) {
-      PushEdge((void*) p.address());
-    }
-  }
-
   template<class TSlot>
-  V8_INLINE void ProcessEdge2(i::HeapObject host, TSlot slot) {
+  V8_INLINE void ProcessEdge(i::HeapObject host, TSlot slot) {
     i::HeapObject object;
     if ((*slot).GetHeapObjectIfStrong(&object)) {
       PushEdge((void*) slot.address());

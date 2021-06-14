@@ -134,7 +134,19 @@ static void mmtk_on_move_event(void* from_address, void* to_address, size_t size
 static void mmtk_scan_roots(TraceRootFn trace_root, void* context, int task_id) {
   main_thread_synchronizer->RunMainThreadTask([=]() {
     mmtk::MMTkRootVisitor root_visitor(v8_heap, trace_root, context, task_id);
+    mmtk::MMTkCustomRootBodyVisitor custom_root_body_visitor(v8_heap, trace_root, context, task_id);
     v8_heap->IterateRoots(&root_visitor, {});
+    for (i::StackFrameIterator it(v8_heap->isolate(), v8_heap->isolate()->thread_local_top()); !it.done(); it.Advance()) {
+      if (it.frame()->is_unoptimized()) break;
+      if (it.frame()->type() == StackFrame::OPTIMIZED) {
+        auto code = it.frame()->LookupCode();
+        if (!code.CanDeoptAt(v8_heap->isolate(), it.frame()->pc())) {
+          trace_root((void*) &code, context);
+          v8::internal::Code::BodyDescriptor::IterateBody(code.map(), code, &custom_root_body_visitor);
+        }
+        break;
+      }
+    }
   });
 }
 

@@ -534,15 +534,24 @@ class WeakRefs {
     while (weak_objects_.weak_objects_in_code.Pop(kMainThreadTask, &weak_object_in_code)) {
       auto object = weak_object_in_code.first;
       auto code = weak_object_in_code.second;
-      if (!is_live(object) && !code.embedded_objects_cleared()) {
+      auto object_is_live = is_live(object);
+      if (!object_is_live && !code.embedded_objects_cleared()) {
         if (!code.marked_for_deoptimization()) {
           code.SetMarkedForDeoptimization("weak objects");
           have_code_to_deoptimize_ = true;
         }
         code.ClearEmbeddedObjects(heap());
         DCHECK(code.embedded_objects_cleared());
-      } else if (is_live(object)) {
-        DCHECK(!get_forwarded_ref(object));
+      } else if (object_is_live) {
+        auto f = mmtk::get_forwarded_ref(object);
+        if (f) {
+          int mode_mask = i::RelocInfo::EmbeddedObjectModeMask() | (1 << i::RelocInfo::CODE_TARGET);
+          for (i::RelocIterator it(code, mode_mask); !it.done(); it.next()) {
+            DCHECK(i::RelocInfo::IsEmbeddedObjectMode(it.rinfo()->rmode()));
+            if (it.rinfo()->target_object() == object)
+              it.rinfo()->set_target_object(heap(), *f, i::SKIP_WRITE_BARRIER);
+          }
+        }
       }
     }
   }

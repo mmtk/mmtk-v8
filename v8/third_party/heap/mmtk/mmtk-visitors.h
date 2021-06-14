@@ -58,6 +58,48 @@ class MMTkRootVisitor: public i::RootVisitor {
   int task_id_;
 };
 
+class MMTkCustomRootBodyVisitor final : public i::ObjectVisitor {
+ public:
+  explicit MMTkCustomRootBodyVisitor(i::Heap* heap, TraceRootFn trace_root, void* context, int task_id)
+      : heap_(heap), trace_root_(trace_root), context_(context), task_id_(task_id) {
+    USE(heap_);
+    USE(task_id_);
+    DCHECK(task_id <= 8);
+  }
+
+  void VisitPointer(i::HeapObject host, i::ObjectSlot p) final {}
+
+  void VisitMapPointer(i::HeapObject host) final {}
+
+  void VisitPointers(i::HeapObject host, i::ObjectSlot start, i::ObjectSlot end) final {}
+
+  void VisitPointers(i::HeapObject host, i::MaybeObjectSlot start,
+                     i::MaybeObjectSlot end) final {
+    // At the moment, custom roots cannot contain weak pointers.
+    UNREACHABLE();
+  }
+
+  // VisitEmbedderPointer is defined by ObjectVisitor to call VisitPointers.
+  void VisitCodeTarget(i::Code host, i::RelocInfo* rinfo) override {
+    auto target = i::Code::GetCodeFromTargetAddress(rinfo->target_address());
+    DCHECK(!mmtk_is_movable(target));
+    trace_root_((void*) &target, context_);
+    DCHECK_EQ(target, i::Code::GetCodeFromTargetAddress(rinfo->target_address()));
+  }
+
+  void VisitEmbeddedPointer(i::Code host, i::RelocInfo* rinfo) override {
+    auto o = rinfo->target_object();
+    trace_root_((void*) &o, context_);
+    if (o != rinfo->target_object()) rinfo->set_target_object(heap_, o);
+  }
+
+ private:
+  v8::internal::Heap* heap_;
+  TraceRootFn trace_root_;
+  void* context_;
+  int task_id_;
+};
+
 class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
  public:
   explicit MMTkEdgeVisitor(i::Heap* heap, ProcessEdgesFn process_edges, TraceFieldFn trace_field, void* context, int task_id)
@@ -158,9 +200,15 @@ class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
 
   virtual void VisitEmbeddedPointer(i::Code host, i::RelocInfo* rinfo) override final {
     auto o = rinfo->target_object();
-    trace_field_((void*) &o, context_);
-    if (o != rinfo->target_object()) {
-      rinfo->set_target_object(heap_, o);
+    auto f = mmtk::get_forwarded_ref(o);
+    if (f) {
+      rinfo->set_target_object(heap_, *f);
+    } else if (host.IsWeakObject(o)) {
+        DCHECK(i::RelocInfo::IsCodeTarget(rinfo->rmode()) || i::RelocInfo::IsEmbeddedObjectMode(rinfo->rmode()));
+        weak_objects_->weak_objects_in_code.Push(task_id_, std::make_pair(o, host));
+    } else {
+      trace_field_((void*) &o, context_);
+      if (o != rinfo->target_object()) rinfo->set_target_object(heap_, o);
     }
   }
 

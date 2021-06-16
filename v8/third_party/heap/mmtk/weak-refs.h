@@ -210,6 +210,7 @@ class WeakRefs {
       // If the BytecodeArray is dead, flush it, which will replace the field with
       // an uncompiled data object.
       if (!is_live(flushing_candidate.GetBytecodeArray(heap()->isolate()))) {
+        UNREACHABLE();
         FlushBytecodeFromSFI(flushing_candidate);
       } else {
         DCHECK(!get_forwarded_ref(flushing_candidate.GetBytecodeArray(heap()->isolate())));
@@ -430,6 +431,20 @@ class WeakRefs {
           }
           location.store(cleared_weak_ref);
         }
+      } else if ((*location)->GetHeapObjectIfStrong(&value)) {
+        DCHECK(!value.IsCell());
+        if (is_live(value)) {
+          // The value of the weak reference is alive.
+          // RecordSlot(slot.first, HeapObjectSlot(location), value);
+          auto forwarded = get_forwarded_ref(value);
+          if (forwarded) location.store(to_weakref(*forwarded));
+        } else {
+          if (value.IsMap()) {
+            // The map is non-live.
+            ClearPotentialSimpleMapTransition(i::Map::cast(value));
+          }
+          location.store(cleared_weak_ref);
+        }
       }
     }
   }
@@ -504,7 +519,8 @@ class WeakRefs {
         // RecordSlot(weak_cell, slot, HeapObject::cast(*slot));
       }
 
-      auto unregister_token = weak_cell.unregister_token();
+      i::ObjectSlot slot = weak_cell.RawField(i::WeakCell::kUnregisterTokenOffset);
+      i::HeapObject unregister_token = i::HeapObject::cast(*slot);//weak_cell.unregister_token();
       if (!is_live(unregister_token)) {
         // The unregister token is dead. Remove any corresponding entries in the
         // key map. Multiple WeakCell with the same token will have all their
@@ -521,6 +537,8 @@ class WeakRefs {
             gc_notify_updated_slot);
       } else {
         DCHECK(!get_forwarded_ref(unregister_token));
+        // auto f = get_forwarded_ref(unregister_token);
+        // if (f) *slot = *f;
         // The unregister_token is alive.
         // ObjectSlot slot = weak_cell.RawField(WeakCell::kUnregisterTokenOffset);
         // RecordSlot(weak_cell, slot, HeapObject::cast(*slot));

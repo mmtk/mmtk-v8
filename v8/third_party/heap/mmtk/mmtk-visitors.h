@@ -123,6 +123,8 @@ class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
     // otherwise visit the function data field strongly.
     if (shared_info.ShouldFlushBytecode(i::Heap::GetBytecodeFlushMode(heap_->isolate()))) {
       weak_objects_->bytecode_flushing_candidates.Push(task_id_, shared_info);
+    } else {
+      VisitPointer(shared_info, shared_info.RawField(i::SharedFunctionInfo::kFunctionDataOffset));
     }
   }
 
@@ -215,6 +217,23 @@ class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
   virtual void VisitMapPointer(i::HeapObject host) override final {
     ProcessEdge(host, host.map_slot());
   }
+
+  // Custom weak pointers must be ignored by the GC but not other
+  // visitors. They're used for e.g., lists that are recreated after GC. The
+  // default implementation treats them as strong pointers. Visitors who want to
+  // ignore them must override this function with empty.
+  // virtual void VisitCustomWeakPointers(i::HeapObject host, i::ObjectSlot start,
+  //                                      i::ObjectSlot end) override final {
+  //   // VisitPointers(host, start, end);
+  //   if (!(host.IsWeakCell() || host.IsJSWeakRef())) {
+  //     VisitPointers(host, start, end);
+  //     return;
+  //   }
+  //   // DCHECK(host.IsWeakCell() || host.IsJSWeakRef());
+  //   // for (auto p = start; p < end; ++p) {
+  //   //   weak_objects_->weak_references.Push(task_id_, std::make_pair(host, i::HeapObjectSlot(p.address())));
+  //   // }
+  // }
 
  private:
   template<class TSlot>

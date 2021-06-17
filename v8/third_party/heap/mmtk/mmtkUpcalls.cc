@@ -156,7 +156,6 @@ static void mmtk_scan_objects(void** objects, size_t count, ProcessEdgesFn proce
     auto ptr = *(objects + i);
     DCHECK_EQ(((Address) ptr) & 1, 0);
     auto obj = HeapObject::FromAddress(((Address) ptr));
-    obj.Iterate(&visitor);
     visitor.Visit(obj);
   }
 }

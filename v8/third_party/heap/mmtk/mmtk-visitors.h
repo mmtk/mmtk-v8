@@ -242,13 +242,13 @@ class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
   //     VisitPointer(shared_info, shared_info.RawField(i::SharedFunctionInfo::kFunctionDataOffset));
   //   }
   // }
-  // V8_INLINE void VisitTransitionArray(i::Map map, i::TransitionArray array) {
-  //   if (!ShouldVisit(array)) return;
-  //   VisitMapPointer(array);
-  //   int size = i::TransitionArray::BodyDescriptor::SizeOf(map, array);
-  //   i::TransitionArray::BodyDescriptor::IterateBody(map, array, size, this);
-  //   weak_objects_->transition_arrays.Push(task_id_, array);
-  // }
+  V8_INLINE void VisitTransitionArray(i::Map map, i::TransitionArray array) {
+    // if (!ShouldVisit(array)) return;
+    VisitMapPointer(array);
+    int size = i::TransitionArray::BodyDescriptor::SizeOf(map, array);
+    i::TransitionArray::BodyDescriptor::IterateBody(map, array, size, this);
+    weak_objects_->transition_arrays.Push(task_id_, array);
+  }
   // V8_INLINE void VisitWeakCell(i::Map map, i::WeakCell weak_cell) {
   //   if (!ShouldVisit(weak_cell)) return;
 
@@ -439,14 +439,21 @@ class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
  private:
   template<class TSlot>
   V8_INLINE void ProcessEdge(i::HeapObject host, TSlot slot) {
+    DCHECK(mmtk::is_live(host));
+    DCHECK(!mmtk::get_forwarded_ref(host));
     i::HeapObject object;
     if ((*slot).GetHeapObjectIfStrong(&object)) {
       PushEdge((void*) slot.address());
     } else if (TSlot::kCanBeWeak && (*slot).GetHeapObjectIfWeak(&object)) {
-      PushEdge((void*) slot.address());
-      // // ProcessWeakHeapObject(host, THeapObjectSlot(slot), heap_object);
-      // i::HeapObjectSlot s = i::HeapObjectSlot(slot.address());
-      // weak_objects_->weak_references.Push(task_id_, std::make_pair(host, s));
+      // if (auto f = mmtk::get_forwarded_ref(object)) {
+      //   i::HeapObjectSlot s = i::HeapObjectSlot(slot.address());
+      //   s.StoreHeapObject(*f);
+      // } else  {
+        // PushEdge((void*) slot.address());
+        // // ProcessWeakHeapObject(host, THeapObjectSlot(slot), heap_object);
+        i::HeapObjectSlot s = i::HeapObjectSlot(slot.address());
+        weak_objects_->weak_references.Push(task_id_, std::make_pair(host, s));
+      // }
     }
   }
 

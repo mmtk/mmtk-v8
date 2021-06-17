@@ -431,27 +431,38 @@ class WeakRefs {
           }
           location.store(cleared_weak_ref);
         }
-      } else if ((*location)->GetHeapObjectIfStrong(&value)) {
+      } /*else if ((*location)->GetHeapObjectIfStrong(&value)) {
         DCHECK(!value.IsCell());
         if (is_live(value)) {
           // The value of the weak reference is alive.
           // RecordSlot(slot.first, HeapObjectSlot(location), value);
           auto forwarded = get_forwarded_ref(value);
-          if (forwarded) location.store(to_weakref(*forwarded));
+          if (forwarded) {
+            printf("[WeakRef] Strong %p -> %p\n", (void*) value.ptr(), (void*) forwarded->ptr());
+            location.store(to_weakref(*forwarded));
+          } else {
+            printf("[WeakRef] Strong %p <unmoved>\n", (void*) value.ptr());
+          }
         } else {
+          printf("[WeakRef] Strong Dead %p\n", (void*) value.ptr());
           if (value.IsMap()) {
             // The map is non-live.
             ClearPotentialSimpleMapTransition(i::Map::cast(value));
           }
           location.store(cleared_weak_ref);
         }
-      }
+      }*/
     }
   }
 
   void ClearPotentialSimpleMapTransition(i::Map dead_target) {
     DCHECK(!is_live(dead_target));
     auto potential_parent = dead_target.constructor_or_back_pointer();
+    if (is_live(i::HeapObject::cast(potential_parent))) {
+      if (auto f = get_forwarded_ref(i::HeapObject::cast(potential_parent))) {
+        potential_parent = *f;
+      }
+    }
     if (potential_parent.IsMap()) {
       auto parent = i::Map::cast(potential_parent);
       i::DisallowGarbageCollection no_gc_obviously;

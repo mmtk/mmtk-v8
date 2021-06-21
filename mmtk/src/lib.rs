@@ -56,7 +56,7 @@ pub struct V8_Upcalls {
     pub is_mutator: extern "C" fn(tls: VMThread) -> bool,
     pub scan_roots: extern "C" fn(trace_root: TraceRootFn, context: *mut c_void, task_id: usize),
     pub scan_objects: extern "C" fn(objects: *const ObjectReference, count: usize, process_edges: ProcessEdgesFn, trace_field: TraceFieldFn, context: *mut c_void, task_id: usize),
-    pub process_weak_refs: extern "C" fn(),
+    pub process_weak_refs: extern "C" fn(trace_root: TraceRootFn, context: *mut c_void),
     pub on_move_event: extern "C" fn(from: ObjectReference, to: ObjectReference, size: usize),
 }
 

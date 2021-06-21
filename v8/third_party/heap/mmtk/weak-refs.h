@@ -192,10 +192,11 @@ class WeakRefs {
     // Mark the uncompiled data as black, and ensure all fields have already been
     // marked.
     DCHECK(is_live(inferred_name));
-    DCHECK(is_live(uncompiled_data));
+    // DCHECK(is_live(uncompiled_data));
 
-    auto forwarded = get_forwarded_ref(uncompiled_data);
-    if (forwarded) uncompiled_data = i::UncompiledData::cast(*forwarded);
+    trace_((void*) &uncompiled_data);
+    // auto forwarded = trace_((void*) &uncompiled_data);
+    // if (forwarded) uncompiled_data = i::UncompiledData::cast(*forwarded);
 
     // Use the raw function data setter to avoid validity checks, since we're
     // performing the unusual task of decompiling.
@@ -209,8 +210,13 @@ class WeakRefs {
     while (weak_objects_.bytecode_flushing_candidates.Pop(kMainThreadTask, &flushing_candidate)) {
       // If the BytecodeArray is dead, flush it, which will replace the field with
       // an uncompiled data object.
+      auto data = flushing_candidate.function_data(v8::kAcquireLoad);
+      if (data.IsHeapObject() || data.IsWeak()) {
+        if (auto f = get_forwarded_ref(i::HeapObject::cast(data))) {
+          flushing_candidate.set_function_data(*f, v8::kReleaseStore);
+        }
+      }
       if (!is_live(flushing_candidate.GetBytecodeArray(heap()->isolate()))) {
-        UNREACHABLE();
         FlushBytecodeFromSFI(flushing_candidate);
       } else {
         DCHECK(!get_forwarded_ref(flushing_candidate.GetBytecodeArray(heap()->isolate())));
@@ -231,7 +237,6 @@ class WeakRefs {
         // RecordSlot(object, slot, HeapObject::cast(target));
       };
       flushed_js_function.ResetIfBytecodeFlushed(gc_notify_updated_slot);
-      UNREACHABLE();
     }
   }
 
@@ -604,6 +609,8 @@ class WeakRefs {
   }
 
  public:
+  std::function<void(void*)> trace_ = [](void*) { UNREACHABLE(); };
+
   static i::Isolate* isolate() {
     return heap()->isolate();
   }

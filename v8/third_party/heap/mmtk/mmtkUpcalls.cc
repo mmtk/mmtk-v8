@@ -39,9 +39,12 @@ static void mmtk_stop_all_mutators(void *tls) {
   MMTK_LOG("[mmtk_stop_all_mutators] END\n");
 }
 
-static void mmtk_process_weak_refs() {
+static void mmtk_process_weak_refs(TraceRootFn trace_root, void* context) {
   main_thread_synchronizer->RunMainThreadTask([=]() {
     MMTK_LOG("[mmtk_process_weak_refs]\n");
+    mmtk::global_weakref_processor->trace_ = [=](void* slot) {
+      trace_root(slot, context);
+    };
     mmtk::global_weakref_processor->ClearNonLiveReferences();
   });
 }
@@ -73,7 +76,9 @@ static void mmtk_spawn_collector_thread(void* tls, void* ctx) {
 }
 
 static void mmtk_block_for_gc() {
+  v8_heap->SetGCState(v8::internal::Heap::MARK_COMPACT);
   main_thread_synchronizer->Block();
+  v8_heap->SetGCState(v8::internal::Heap::NOT_IN_GC);
 }
 
 static void* mmtk_get_mmtk_mutator(void* tls) {

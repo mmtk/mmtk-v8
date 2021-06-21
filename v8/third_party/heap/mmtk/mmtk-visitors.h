@@ -16,6 +16,13 @@
 #include "weak-refs.h"
 #include <unordered_set>
 
+// #define WEAKREF_PROCESSING
+
+#ifdef WEAKREF_PROCESSING
+#define WEAKREF_PROCESSING_BOOL true
+#else
+#define WEAKREF_PROCESSING_BOOL false
+#endif
 
 namespace mmtk {
 
@@ -120,15 +127,17 @@ class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
 
   // V8_INLINE bool AllowDefaultJSObjectVisit() { return false; }
 
-  // V8_INLINE void VisitBytecodeArray(i::Map map, i::BytecodeArray object) {
-  //   if (!ShouldVisit(object)) return;
-  //   int size = i::BytecodeArray::BodyDescriptor::SizeOf(map, object);
-  //   this->VisitMapPointer(object);
-  //   i::BytecodeArray::BodyDescriptor::IterateBody(map, object, size, this);
-  //   // if (!is_forced_gc_) {
-  //     object.MakeOlder();
-  //   // }
-  // }
+#ifdef WEAKREF_PROCESSING
+
+  V8_INLINE void VisitBytecodeArray(i::Map map, i::BytecodeArray object) {
+    if (!ShouldVisit(object)) return;
+    int size = i::BytecodeArray::BodyDescriptor::SizeOf(map, object);
+    this->VisitMapPointer(object);
+    i::BytecodeArray::BodyDescriptor::IterateBody(map, object, size, this);
+    // if (!is_forced_gc_) {
+      object.MakeOlder();
+    // }
+  }
   // V8_INLINE void VisitDescriptorArray(i::Map map, i::DescriptorArray array) {
   //   if (!ShouldVisit(array)) return;
   //   VisitMapPointer(array);
@@ -188,14 +197,14 @@ class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
   // V8_INLINE void VisitJSDataView(i::Map map, i::JSDataView object) {
   //   VisitEmbedderTracingSubclass(map, object);
   // }
-  // V8_INLINE void VisitJSFunction(i::Map map, i::JSFunction object) {
-  //   VisitJSObjectSubclass(map, object);
-  //   // Check if the JSFunction needs reset due to bytecode being flushed.
-  //   if (/*bytecode_flush_mode_ != BytecodeFlushMode::kDoNotFlushBytecode &&*/
-  //       object.NeedsResetDueToFlushedBytecode()) {
-  //     weak_objects_->flushed_js_functions.Push(task_id_, object);
-  //   }
-  // }
+  V8_INLINE void VisitJSFunction(i::Map map, i::JSFunction object) {
+    VisitJSObjectSubclass(map, object);
+    // Check if the JSFunction needs reset due to bytecode being flushed.
+    if (/*bytecode_flush_mode_ != BytecodeFlushMode::kDoNotFlushBytecode &&*/
+        object.NeedsResetDueToFlushedBytecode()) {
+      weak_objects_->flushed_js_functions.Push(task_id_, object);
+    }
+  }
   // V8_INLINE void VisitJSTypedArray(i::Map map, i::JSTypedArray object) {
   //   VisitEmbedderTracingSubclass(map, object);
   // }
@@ -227,21 +236,30 @@ class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
   //   // pointer to it.
   //   i::Map::BodyDescriptor::IterateBody(meta_map, map, map.Size(), this);
   // }
-  // V8_INLINE void VisitSharedFunctionInfo(i::Map map, i::SharedFunctionInfo shared_info) {
-  //   if (!ShouldVisit(shared_info)) return;
+  V8_INLINE void VisitSharedFunctionInfo(i::Map map, i::SharedFunctionInfo shared_info) {
+    // if (!ShouldVisit(shared_info)) return;
+    int size = i::SharedFunctionInfo::BodyDescriptor::SizeOf(map, shared_info);
+    VisitMapPointer(shared_info);
+    i::SharedFunctionInfo::BodyDescriptor::IterateBody(map, shared_info, size, this);
 
-  //   int size = i::SharedFunctionInfo::BodyDescriptor::SizeOf(map, shared_info);
-  //   VisitMapPointer(shared_info);
-  //   i::SharedFunctionInfo::BodyDescriptor::IterateBody(map, shared_info, size, this);
+    auto data = shared_info.function_data(v8::kAcquireLoad);
+    if (data.IsHeapObject() || data.IsWeak()) {
+      if (auto f = mmtk::get_forwarded_ref(i::HeapObject::cast(data))) {
+        shared_info.set_function_data(*f, v8::kReleaseStore);
+      }
+      // trace_field_((void*) &data, context_);
+      // shared_info.set_function_data(data, v8::kReleaseStore);
+    }
 
-  //   // If the SharedFunctionInfo has old bytecode, mark it as flushable,
-  //   // otherwise visit the function data field strongly.
-  //   if (shared_info.ShouldFlushBytecode(i::Heap::GetBytecodeFlushMode(heap_->isolate()))) {
-  //     weak_objects_->bytecode_flushing_candidates.Push(task_id_, shared_info);
-  //   } else {
-  //     VisitPointer(shared_info, shared_info.RawField(i::SharedFunctionInfo::kFunctionDataOffset));
-  //   }
-  // }
+    // If the SharedFunctionInfo has old bytecode, mark it as flushable,
+    // otherwise visit the function data field strongly.
+    if (shared_info.ShouldFlushBytecode(i::Heap::GetBytecodeFlushMode(heap_->isolate()))) {
+      weak_objects_->bytecode_flushing_candidates.Push(task_id_, shared_info);
+    } else {
+      VisitPointer(shared_info, shared_info.RawField(i::SharedFunctionInfo::kFunctionDataOffset));
+    }
+  }
+
   V8_INLINE void VisitTransitionArray(i::Map map, i::TransitionArray array) {
     // if (!ShouldVisit(array)) return;
     VisitMapPointer(array);
@@ -311,13 +329,13 @@ class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
   //   // }
   // }
 
-  // template <typename T>
-  // void VisitJSObjectSubclass(i::Map map, T object) {
-  //   if (!ShouldVisit(object)) return;
-  //   VisitMapPointer(object);
-  //   int size = T::BodyDescriptor::SizeOf(map, object);
-  //   T::BodyDescriptor::IterateBody(map, object, size, this);
-  // }
+  template <typename T>
+  void VisitJSObjectSubclass(i::Map map, T object) {
+    // if (!ShouldVisit(object)) return;
+    VisitMapPointer(object);
+    int size = T::BodyDescriptor::SizeOf(map, object);
+    T::BodyDescriptor::IterateBody(map, object, size, this);
+  }
 
 
   // V8_INLINE void VisitSharedFunctionInfo(i::Map map, i::SharedFunctionInfo shared_info) {
@@ -387,6 +405,8 @@ class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
   //   }
   // }
 
+#endif
+
   virtual void VisitPointers(i::HeapObject host, i::ObjectSlot start, i::ObjectSlot end) override final {
     for (auto p = start; p < end; ++p) ProcessEdge(host, p);
   }
@@ -407,7 +427,7 @@ class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
     auto f = mmtk::get_forwarded_ref(o);
     if (f) {
       rinfo->set_target_object(heap_, *f);
-    } else if (host.IsWeakObject(o)) {
+    } else if (host.IsWeakObject(o) && WEAKREF_PROCESSING_BOOL) {
         DCHECK(i::RelocInfo::IsCodeTarget(rinfo->rmode()) || i::RelocInfo::IsEmbeddedObjectMode(rinfo->rmode()));
         weak_objects_->weak_objects_in_code.Push(task_id_, std::make_pair(o, host));
     } else {
@@ -424,8 +444,8 @@ class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
   // visitors. They're used for e.g., lists that are recreated after GC. The
   // default implementation treats them as strong pointers. Visitors who want to
   // ignore them must override this function with empty.
-  // virtual void VisitCustomWeakPointers(i::HeapObject host, i::ObjectSlot start,
-  //                                      i::ObjectSlot end) override final {
+#ifdef WEAKREF_PROCESSING
+  virtual void VisitCustomWeakPointers(i::HeapObject host, i::ObjectSlot start, i::ObjectSlot end) override final {
   //   // VisitPointers(host, start, end);
   //   if (!(host.IsWeakCell() || host.IsJSWeakRef())) {
   //     VisitPointers(host, start, end);
@@ -435,7 +455,8 @@ class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
   //   // for (auto p = start; p < end; ++p) {
   //   //   weak_objects_->weak_references.Push(task_id_, std::make_pair(host, i::HeapObjectSlot(p.address())));
   //   // }
-  // }
+  }
+#endif
  private:
   template<class TSlot>
   V8_INLINE void ProcessEdge(i::HeapObject host, TSlot slot) {
@@ -445,15 +466,19 @@ class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
     if ((*slot).GetHeapObjectIfStrong(&object)) {
       PushEdge((void*) slot.address());
     } else if (TSlot::kCanBeWeak && (*slot).GetHeapObjectIfWeak(&object)) {
+      if (!WEAKREF_PROCESSING_BOOL) {
+        PushEdge((void*) slot.address());
+      } else {
       // if (auto f = mmtk::get_forwarded_ref(object)) {
       //   i::HeapObjectSlot s = i::HeapObjectSlot(slot.address());
       //   s.StoreHeapObject(*f);
-      // } else  {
+      // } else {
         // PushEdge((void*) slot.address());
         // // ProcessWeakHeapObject(host, THeapObjectSlot(slot), heap_object);
         i::HeapObjectSlot s = i::HeapObjectSlot(slot.address());
         weak_objects_->weak_references.Push(task_id_, std::make_pair(host, s));
       // }
+      }
     }
   }
 

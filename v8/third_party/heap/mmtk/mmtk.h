@@ -135,7 +135,7 @@ typedef struct {
     bool (*is_mutator) (void* tls);
     void (*scan_roots) (TraceRootFn process_edges, void* context, int task_id);
     void (*scan_objects) (void** objects, size_t count, ProcessEdgesFn process_edges, TraceFieldFn trace_field, void* context, int task_id);
-    void (*process_weak_refs) ();
+    void (*process_weak_refs) (TraceRootFn process_edges, void* context);
     void (*on_move_event) (void* from, void* to, size_t size);
 } V8_Upcalls;
 

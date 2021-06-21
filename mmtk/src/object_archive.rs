@@ -2,6 +2,7 @@ use libc::c_void;
 use mmtk::util::ObjectReference;
 use mmtk::util::address::Address;
 use std::collections::HashMap;
+use std::sync::Mutex;
 
 
 lazy_static! {
@@ -139,9 +140,23 @@ impl ObjectArchive {
                 new_space_map.insert(new_object, self.space_map[&object]);
             }
         }
+        new_objects.dedup();
         new_objects.sort_by(|a, b| a.to_address().cmp(&b.to_address()));
         self.untagged_objects = new_objects;
         self.space_map = new_space_map;
+    }
+
+    pub fn copy(&mut self, from: Address, to: Address) {
+        lazy_static! {
+            static ref LOCK: Mutex<()> = Mutex::default();
+        }
+        let _lock = LOCK.lock().unwrap();
+        unsafe {
+            let space = self.space_map[&from.to_object_reference()];
+            self.space_map.insert(to.to_object_reference(), space);
+            // self.untagged_objects.push(to.to_object_reference());
+            // self.untagged_objects.sort_by(|a, b| a.to_address().cmp(&b.to_address()));
+        }
     }
 
     pub fn reset_iterator(&mut self) {

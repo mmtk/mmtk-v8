@@ -8,6 +8,9 @@ use UPCALLS;
 use V8;
 
 use crate::object_archive::global_object_archive;
+use crate::scanning::ROOT_OBJECTS;
+use crate::scanning::flush_roots;
+use crate::scanning::trace_root;
 
 pub struct VMCollection {}
 
@@ -58,9 +61,14 @@ impl Collection<V8> for VMCollection {
         global_object_archive().update();
     }
 
-    fn process_weak_refs() {
+    fn process_weak_refs<E: ProcessEdgesWork<VM = V8>>(worker: &mut GCWorker<V8>) {
         unsafe {
-            ((*UPCALLS).process_weak_refs)();
+            debug_assert!(ROOT_OBJECTS.is_empty());
+            ((*UPCALLS).process_weak_refs)(trace_root::<E> as _, worker as *mut _ as _);
+            if !ROOT_OBJECTS.is_empty() {
+                flush_roots::<E>(worker);
+            }
+            debug_assert!(ROOT_OBJECTS.is_empty());
         }
     }
 }

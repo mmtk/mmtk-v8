@@ -519,6 +519,8 @@ class WeakRefs {
         DCHECK(!target.IsUndefined());
         // The value of the WeakCell is dead.
         auto finalization_registry = i::JSFinalizationRegistry::cast(weak_cell.finalization_registry());
+        if (auto f = get_forwarded_ref(finalization_registry)) finalization_registry = i::JSFinalizationRegistry::cast(*f);
+        DCHECK(is_live(finalization_registry));
         if (!finalization_registry.scheduled_for_cleanup()) {
           heap()->EnqueueDirtyJSFinalizationRegistry(finalization_registry, gc_notify_updated_slot);
         }
@@ -529,7 +531,10 @@ class WeakRefs {
         DCHECK(finalization_registry.NeedsCleanup());
         DCHECK(finalization_registry.scheduled_for_cleanup());
       } else {
-        DCHECK(!get_forwarded_ref(target));
+        i::ObjectSlot slot = weak_cell.RawField(i::WeakCell::kTargetOffset);
+        if (auto f = get_forwarded_ref(target)) {
+          slot.store(*f);
+        }
         // The value of the WeakCell is alive.
         // i::ObjectSlot slot = weak_cell.RawField(WeakCell::kTargetOffset);
         // RecordSlot(weak_cell, slot, HeapObject::cast(*slot));
@@ -552,9 +557,9 @@ class WeakRefs {
             },
             gc_notify_updated_slot);
       } else {
-        DCHECK(!get_forwarded_ref(unregister_token));
-        // auto f = get_forwarded_ref(unregister_token);
-        // if (f) *slot = *f;
+        if (auto f = get_forwarded_ref(unregister_token)) {
+          slot.store(*f);
+        }
         // The unregister_token is alive.
         // ObjectSlot slot = weak_cell.RawField(WeakCell::kUnregisterTokenOffset);
         // RecordSlot(weak_cell, slot, HeapObject::cast(*slot));

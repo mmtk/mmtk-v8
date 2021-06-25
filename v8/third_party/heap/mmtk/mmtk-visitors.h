@@ -128,6 +128,44 @@ class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
   // V8_INLINE bool AllowDefaultJSObjectVisit() { return false; }
 
 #ifdef WEAKREF_PROCESSING
+  void VisitEphemeronHashTable(i::Map map, i::EphemeronHashTable table) {
+    // if (!concrete_visitor()->ShouldVisit(table)) return 0;
+    weak_objects_->ephemeron_hash_tables.Push(task_id_, table);
+
+    for (auto i : table.IterateEntries()) {
+      auto key_slot = table.RawFieldOfElementAt(i::EphemeronHashTable::EntryToIndex(i));
+      auto key = i::HeapObject::cast(table.KeyAt(i));
+
+      // VisitPointer(table, key_slot);
+      // concrete_visitor()->SynchronizePageAccess(key);
+      // concrete_visitor()->RecordSlot(table, key_slot, key);
+
+      auto value_slot = table.RawFieldOfElementAt(i::EphemeronHashTable::EntryToValueIndex(i));
+
+      if (is_live(key)) {
+        if (auto f = get_forwarded_ref(key)) {
+          key_slot.store(*f);
+        }
+        VisitPointer(table, value_slot);
+      } else {
+        auto value_obj = table.ValueAt(i);
+        if (value_obj.IsHeapObject()) {
+          auto value = i::HeapObject::cast(value_obj);
+          printf("discover ephemeron key=%p value=%p\n", (void*) key.ptr(), (void*) value.ptr());
+      //     concrete_visitor()->SynchronizePageAccess(value);
+      //     concrete_visitor()->RecordSlot(table, value_slot, value);
+
+      //     // Revisit ephemerons with both key and value unreachable at end
+      //     // of concurrent marking cycle.
+      //     if (concrete_visitor()->marking_state()->IsWhite(value)) {
+          weak_objects_->discovered_ephemerons.Push(task_id_, i::Ephemeron{key, value});
+      //     }
+        }
+      }
+    }
+    // return table.SizeFromMap(map);
+  }
+
   V8_INLINE void VisitDescriptorArray(i::Map map, i::DescriptorArray array) {
     // if (!ShouldVisit(array)) return;
     VisitMapPointer(array);

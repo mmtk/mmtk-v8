@@ -32,11 +32,9 @@ i::MaybeObject to_weakref(i::HeapObject o) {
 }
 
 base::Optional<i::HeapObject> get_forwarded_ref(i::HeapObject o) {
-  DCHECK(o.IsStrong());
   auto f = mmtk_get_forwarded_object(o);
   if (f != nullptr) {
     auto x = i::HeapObject::cast(i::Object((i::Address) f));
-    DCHECK(o.IsStrong());
     return x;
   }
   return base::nullopt;
@@ -400,7 +398,15 @@ class WeakRefs {
         if (!is_live(key)) {
           table.RemoveEntry(i);
         } else {
-          DCHECK(!get_forwarded_ref(key));
+          if (auto f = get_forwarded_ref(key)) {
+            auto key_slot = table.RawFieldOfElementAt(i::EphemeronHashTable::EntryToIndex(i));
+            key_slot.store(*f);
+          }
+          auto value = i::HeapObject::cast(table.ValueAt(i));
+          if (auto f = get_forwarded_ref(value)) {
+            auto value_slot = table.RawFieldOfElementAt(i::EphemeronHashTable::EntryToValueIndex(i));
+            value_slot.store(*f);
+          }
         }
       }
     }
@@ -613,7 +619,34 @@ class WeakRefs {
     }
   }
 
+  void ProcessEphemeron(i::Ephemeron ephemeron) {
+    if (is_live(ephemeron.key)) {
+      if (!is_live(ephemeron.value)) {
+        trace_((void*) &ephemeron.value);
+      }
+    } else {
+      weak_objects_.next_ephemerons.Push(kMainThreadTask, ephemeron);
+    }
+  }
+
  public:
+
+
+  void ProcessEphemerons() {
+    Flush();
+
+    i::Ephemeron ephemeron;
+
+    DCHECK(weak_objects_.current_ephemerons.IsEmpty());
+    weak_objects_.current_ephemerons.Swap(weak_objects_.next_ephemerons);
+    while (weak_objects_.current_ephemerons.Pop(kMainThreadTask, &ephemeron)) {
+      ProcessEphemeron(ephemeron);
+    }
+    while (weak_objects_.discovered_ephemerons.Pop(kMainThreadTask, &ephemeron)) {
+      ProcessEphemeron(ephemeron);
+    }
+  }
+
   std::function<void(void*)> trace_ = [](void*) { UNREACHABLE(); };
 
   static i::Isolate* isolate() {
@@ -664,6 +697,8 @@ class WeakRefs {
     DCHECK(weak_objects_.weak_cells.IsEmpty());
     DCHECK(weak_objects_.bytecode_flushing_candidates.IsEmpty());
     DCHECK(weak_objects_.flushed_js_functions.IsEmpty());
+    DCHECK(weak_objects_.discovered_ephemerons.IsEmpty());
+    // DCHECK(weak_objects_.next_ephemerons.IsEmpty());
 
     if (have_code_to_deoptimize_) {
       // Some code objects were marked for deoptimization during the GC.

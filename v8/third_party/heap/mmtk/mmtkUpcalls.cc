@@ -165,6 +165,15 @@ static void mmtk_scan_objects(void** objects, size_t count, ProcessEdgesFn proce
   }
 }
 
+static void mmtk_process_ephemerons(TraceRootFn trace_root, void* context, int task_id) {
+  main_thread_synchronizer->RunMainThreadTask([=]() {
+    mmtk::global_weakref_processor->trace_ = [=](void* slot) {
+      trace_root(slot, context);
+    };
+    mmtk::global_weakref_processor->ProcessEphemerons();
+  });
+}
+
 V8_Upcalls mmtk_upcalls = {
   mmtk_stop_all_mutators,
   mmtk_resume_mutators,
@@ -184,6 +193,7 @@ V8_Upcalls mmtk_upcalls = {
   mmtk_scan_objects,
   mmtk_process_weak_refs,
   mmtk_on_move_event,
+  mmtk_process_ephemerons,
 };
 }   // namespace third_party_heap
 }  // namespace internal

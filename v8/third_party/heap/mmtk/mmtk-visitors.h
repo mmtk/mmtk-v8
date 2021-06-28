@@ -101,6 +101,13 @@ class MMTkCustomRootBodyVisitor final : public i::ObjectVisitor {
   }
 
  private:
+  V8_INLINE void ProcessEdge(i::HeapObject host, i::ObjectSlot slot) {
+    auto object = *slot;
+    if (!object.IsHeapObject()) return;
+    trace_root_((void*) &object, context_);
+    *slot = object;
+  }
+
   v8::internal::Heap* heap_;
   TraceRootFn trace_root_;
   void* context_;
@@ -190,9 +197,7 @@ class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
 
     int size = i::WeakCell::BodyDescriptor::SizeOf(map, weak_cell);
     this->VisitMapPointer(weak_cell);
-    skip_weak_ = true;
     i::WeakCell::BodyDescriptor::IterateBody(map, weak_cell, size, this);
-    skip_weak_ = false;
     // i::HeapObject target = weak_cell.relaxed_target();
     // i::HeapObject unregister_token = weak_cell.relaxed_unregister_token();
     // concrete_visitor()->SynchronizePageAccess(target);
@@ -214,9 +219,7 @@ class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
   }
 
   V8_INLINE void VisitJSWeakRef(i::Map map, i::JSWeakRef weak_ref) {
-    skip_weak_ = true;
     VisitJSObjectSubclass(map, weak_ref);
-    skip_weak_ = false;
     // if (size == 0) return 0;
     if (weak_ref.target().IsHeapObject()) {
       // i::HeapObject target = i::HeapObject::cast(weak_ref.target());
@@ -238,18 +241,14 @@ class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
     if (!ShouldVisit(object)) return;
     int size = i::BytecodeArray::BodyDescriptor::SizeOf(map, object);
     this->VisitMapPointer(object);
-    skip_weak_ = true;
     i::BytecodeArray::BodyDescriptor::IterateBody(map, object, size, this);
-    skip_weak_ = false;
     // if (!is_forced_gc_) {
       object.MakeOlder();
     // }
   }
 
   V8_INLINE void VisitJSFunction(i::Map map, i::JSFunction object) {
-    skip_weak_ = true;
     VisitJSObjectSubclass(map, object);
-    skip_weak_ = false;
     // Check if the JSFunction needs reset due to bytecode being flushed.
     if (/*bytecode_flush_mode_ != BytecodeFlushMode::kDoNotFlushBytecode &&*/
         object.NeedsResetDueToFlushedBytecode()) {
@@ -261,9 +260,7 @@ class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
     // if (!ShouldVisit(shared_info)) return;
     int size = i::SharedFunctionInfo::BodyDescriptor::SizeOf(map, shared_info);
     VisitMapPointer(shared_info);
-    skip_weak_ = true;
     i::SharedFunctionInfo::BodyDescriptor::IterateBody(map, shared_info, size, this);
-    skip_weak_ = false;
 
     auto data = shared_info.function_data(v8::kAcquireLoad);
     if (data.IsHeapObject() || data.IsWeak()) {
@@ -304,10 +301,21 @@ class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
   // default implementation treats them as strong pointers. Visitors who want to
   // ignore them must override this function with empty.
   virtual void VisitCustomWeakPointers(i::HeapObject host, i::ObjectSlot start, i::ObjectSlot end) override final {
-    if (!skip_weak_) VisitPointers(host, start, end);
-  }
+    // for (auto p = start; p < end; ++p) {
+    //   printf("@weak? %p.%p -> %p\n", (void*) host.ptr(), (void*) p.address(), (void*) (*p).ptr());
+    //   i::HeapObject object;
+    //   if (i::ObjectSlot::kCanBeWeak && (*p).GetHeapObjectIfWeak(&object)) {
+    //     // printf("@weak %p.%p -> %p\n", (void*) host.ptr(), (void*) p.address(), (void*) (*p).ptr());
+    //     // auto s = i::HeapObjectSlot(p.address());
+    //     // weak_objects_->weak_references.Push(task_id_, std::make_pair(host, s));
+    //   } else if ((*p).GetHeapObjectIfStrong(&object)) {
 
-  bool skip_weak_ = false;
+    //     printf("@string %p.%p -> %p\n", (void*) host.ptr(), (void*) p.address(), (void*) (*p).ptr());
+    //     auto s = i::HeapObjectSlot(p.address());
+    //     weak_objects_->weak_references.Push(task_id_, std::make_pair(host, s));
+    //   }
+    // }
+  }
 
 #endif
 
@@ -466,6 +474,11 @@ class MMTkHeapVerifier: public i::RootVisitor, public i::ObjectVisitor {
         printf("Dead edge %p.%p -> %p\n", (void*) host.ptr(), (void*) edge, (void*) o.ptr());
       }
       CHECK(tph::Heap::IsValidHeapObject(o));
+      CHECK(is_live(o));
+      // if (get_forwarded_ref(o)) {
+      //   printf("Unforwarded edge %p.%p -> %p\n", (void*) host.ptr(), (void*) edge, (void*) o.ptr());
+      // }
+      // CHECK(!get_forwarded_ref(o));
       mark_stack_.push_back(o);
     }
   }

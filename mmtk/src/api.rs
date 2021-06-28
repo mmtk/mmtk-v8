@@ -84,8 +84,11 @@ pub extern "C" fn alloc(
     size: usize,
     align: usize,
     offset: isize,
-    semantics: AllocationSemantics,
+    mut semantics: AllocationSemantics,
 ) -> Address {
+    if semantics == AllocationSemantics::Code {
+        semantics = AllocationSemantics::Los;
+    }
     let a = memory_manager::alloc::<V8>(mutator, size, align, offset, semantics);
     unsafe { memory_manager::post_alloc::<V8>(mutator, a.to_object_reference(), size, semantics); }
     a

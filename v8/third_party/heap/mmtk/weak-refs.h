@@ -46,7 +46,7 @@ class MMTkWeakObjectRetainer: public i::WeakObjectRetainer {
     // LOG("RetainAs %p\n", (void*) object.ptr());
     if (object == i::Object()) return object;
     auto heap_object = i::HeapObject::cast(object);
-    if (tph::Heap::IsValidHeapObject(heap_object)) {
+    if (is_live(heap_object)) {
       auto f = mmtk_get_forwarded_object(heap_object);
       if (f != nullptr) {
         // LOG("%p -> %p\n", (void*) object.ptr(), (void*) f);
@@ -635,6 +635,36 @@ class WeakRefs {
   void ProcessEphemerons() {
     Flush();
 
+    class XRootVisitor: public i::RootVisitor {
+     public:
+      explicit XRootVisitor(std::function<void(void*)>& trace): trace_(trace) {}
+
+      virtual void VisitRootPointer(i::Root root, const char* description, i::FullObjectSlot p) override final {
+        ProcessRootEdge(root, p);
+      }
+      virtual void VisitRootPointers(i::Root root, const char* description, i::FullObjectSlot start, i::FullObjectSlot end) override final {
+        for (auto p = start; p < end; ++p) ProcessRootEdge(root, p);
+      }
+      virtual void VisitRootPointers(i::Root root, const char* description, i::OffHeapObjectSlot start, i::OffHeapObjectSlot end) override final {
+        for (auto p = start; p < end; ++p) ProcessRootEdge(root, p);
+      }
+     private:
+      V8_INLINE void ProcessRootEdge(i::Root root, i::FullObjectSlot slot) {
+        i::HeapObject object;
+        if ((*slot).GetHeapObject(&object)) {
+          trace_((void*) slot.address());
+        }
+      }
+      std::function<void(void*)>& trace_;
+    };
+
+    {
+      XRootVisitor root_visitor(trace_);
+      isolate()->global_handles()->IterateWeakRootsForFinalizers(&root_visitor);
+      // isolate()->global_handles()->IterateWeakRootsForPhantomHandles(&root_visitor);
+    }
+
+
     i::Ephemeron ephemeron;
 
     DCHECK(weak_objects_.current_ephemerons.IsEmpty());
@@ -687,6 +717,8 @@ class WeakRefs {
     ClearWeakReferences();
     ClearWeakCollections();
     ClearJSWeakRefs();
+
+    PROFILE(heap()->isolate(), WeakCodeClearEvent());
 
     MarkDependentCodeForDeoptimization();
 

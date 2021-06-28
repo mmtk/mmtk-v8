@@ -1,3 +1,9 @@
+0.5.0 (2021-06-28)
+===
+
+* `mmtk-v8` can now pass all V8 unit-tests on NOGC plan.
+* Updates to mmtk-core 0.5.0
+
 0.4.0 (2021-05-17)
 ===
 

@@ -475,10 +475,10 @@ class MMTkHeapVerifier: public i::RootVisitor, public i::ObjectVisitor {
       }
       CHECK(tph::Heap::IsValidHeapObject(o));
       CHECK(is_live(o));
-      // if (get_forwarded_ref(o)) {
-      //   printf("Unforwarded edge %p.%p -> %p\n", (void*) host.ptr(), (void*) edge, (void*) o.ptr());
-      // }
-      // CHECK(!get_forwarded_ref(o));
+      if (get_forwarded_ref(o)) {
+        printf("Unforwarded edge %p.%p -> %p\n", (void*) host.ptr(), (void*) edge, (void*) o.ptr());
+      }
+      CHECK(!get_forwarded_ref(o));
       mark_stack_.push_back(o);
     }
   }

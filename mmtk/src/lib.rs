@@ -1,5 +1,6 @@
 #![feature(vec_into_raw_parts)]
 #![feature(thread_local)]
+#![feature(const_option)]
 
 extern crate libc;
 extern crate mmtk;

@@ -158,7 +158,6 @@ class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
         auto value_obj = table.ValueAt(i);
         if (value_obj.IsHeapObject()) {
           auto value = i::HeapObject::cast(value_obj);
-          printf("discover ephemeron key=%p value=%p\n", (void*) key.ptr(), (void*) value.ptr());
       //     concrete_visitor()->SynchronizePageAccess(value);
       //     concrete_visitor()->RecordSlot(table, value_slot, value);
 

@@ -1,6 +1,8 @@
 use std::sync::atomic::Ordering;
 
 use super::UPCALLS;
+use mmtk::util::constants::{LOG_BITS_IN_WORD, LOG_BYTES_IN_PAGE, LOG_BYTES_IN_WORD};
+use mmtk::util::metadata::side_metadata::{LOCAL_SIDE_METADATA_VM_BASE_ADDRESS, SideMetadataSpec};
 use mmtk::util::metadata::{header_metadata::HeaderMetadataSpec, MetadataSpec};
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::*;
@@ -17,28 +19,48 @@ const DUMMY_METADATA: MetadataSpec = MetadataSpec::InHeader(HeaderMetadataSpec {
 
 impl ObjectModel<V8> for VMObjectModel {
     const GLOBAL_LOG_BIT_SPEC: MetadataSpec = DUMMY_METADATA;
-    const LOCAL_FORWARDING_POINTER_SPEC: MetadataSpec = DUMMY_METADATA;
-    const LOCAL_FORWARDING_BITS_SPEC: MetadataSpec = DUMMY_METADATA;
-    const LOCAL_MARK_BIT_SPEC: MetadataSpec = DUMMY_METADATA;
-    const LOCAL_LOS_MARK_NURSERY_SPEC: MetadataSpec = DUMMY_METADATA;
+    const LOCAL_FORWARDING_POINTER_SPEC: MetadataSpec = MetadataSpec::InHeader(HeaderMetadataSpec {
+        bit_offset: 0,
+        num_of_bits: LOG_BITS_IN_WORD,
+    });
+    const LOCAL_FORWARDING_BITS_SPEC: MetadataSpec = MetadataSpec::OnSide(SideMetadataSpec {
+        is_global: false,
+        offset: LOCAL_SIDE_METADATA_VM_BASE_ADDRESS.as_usize(),
+        log_num_of_bits: 1,
+        log_min_obj_size: LOG_BYTES_IN_WORD as usize,
+    });
+    const LOCAL_MARK_BIT_SPEC: MetadataSpec = MetadataSpec::OnSide(SideMetadataSpec {
+        is_global: false,
+        offset: Self::LOCAL_FORWARDING_BITS_SPEC.as_side().unwrap().accumulated_size(),
+        log_num_of_bits: 0,
+        log_min_obj_size: LOG_BYTES_IN_WORD as usize,
+    });
+    const LOCAL_LOS_MARK_NURSERY_SPEC: MetadataSpec = MetadataSpec::OnSide(SideMetadataSpec {
+        is_global: false,
+        offset: Self::LOCAL_MARK_BIT_SPEC.as_side().unwrap().accumulated_size(),
+        log_num_of_bits: 1,
+        log_min_obj_size: LOG_BYTES_IN_PAGE as usize,
+    });
 
     fn load_metadata(
-        _metadata_spec: HeaderMetadataSpec,
-        _object: ObjectReference,
+        metadata_spec: HeaderMetadataSpec,
+        object: ObjectReference,
         _mask: Option<usize>,
         _atomic_ordering: Option<Ordering>,
     ) -> usize {
-        unimplemented!()
+        debug_assert_eq!(metadata_spec, Self::LOCAL_FORWARDING_POINTER_SPEC.as_header().unwrap());
+        unsafe { object.to_address().load() }
     }
 
     fn store_metadata(
-        _metadata_spec: HeaderMetadataSpec,
-        _object: ObjectReference,
-        _val: usize,
+        metadata_spec: HeaderMetadataSpec,
+        object: ObjectReference,
+        val: usize,
         _mask: Option<usize>,
         _atomic_ordering: Option<Ordering>,
     ) {
-        unimplemented!()
+        debug_assert_eq!(metadata_spec, Self::LOCAL_FORWARDING_POINTER_SPEC.as_header().unwrap());
+        unsafe { object.to_address().store(val) }
     }
 
     fn compare_exchange_metadata(

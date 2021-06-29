@@ -90,24 +90,10 @@ AllocationResult Heap::Allocate(size_t size_in_bytes, AllocationType type, Alloc
   TPHData* tph_data_ = get_tph_data(this);
   bool large_object = size_in_bytes > kMaxRegularHeapObjectSize;
   size_t align_bytes = (type == AllocationType::kCode) ? kCodeAlignment : (align == kWordAligned) ? kSystemPointerSize : (align == kDoubleAligned) ? kDoubleSize : kSystemPointerSize;
-  // Get MMTk space that the object should be allocated to.
-  int space = (type == AllocationType::kCode) ? 3 : (type == AllocationType::kReadOnly) ? 4 : (large_object || type == AllocationType::kMap) ? 2 : 0;
+  auto mmtk_allocator = mmtk::GetAllocationSemanticForV8AllocationType(type, large_object);
   Address result =
-      reinterpret_cast<Address>(alloc(tph_mutator_, size_in_bytes, align_bytes, 0, space));
-  // Remember the V8 internal `AllocationSpace` for this object.
-  // This is required to pass various V8 internal space checks.
-  // TODO(wenyuzhao): Use MMTk's vm-specific spaces for allocation instead of remembering the `AllocationSpace`s.
-  AllocationSpace allocation_space;
-  if (type == AllocationType::kCode) {
-    allocation_space = large_object ? CODE_LO_SPACE : CODE_SPACE;
-  } else if (type == AllocationType::kReadOnly) {
-    allocation_space = RO_SPACE;
-  } else if (type == AllocationType::kMap) {
-    allocation_space = MAP_SPACE;
-  } else {
-    allocation_space = large_object ? LO_SPACE : OLD_SPACE;
-  }
-  tph_archive_insert(tph_data_->archive(), reinterpret_cast<void*>(result), tph_data_->isolate(), uint8_t(allocation_space));
+      reinterpret_cast<Address>(alloc(tph_mutator_, size_in_bytes, align_bytes, 0, (int) mmtk_allocator));
+  tph_archive_insert(tph_data_->archive(), reinterpret_cast<void*>(result), tph_data_->isolate());
   HeapObject rtn = HeapObject::FromAddress(result);
   return rtn;
 }
@@ -131,22 +117,10 @@ bool Heap::CollectGarbage() {
   return true;
 }
 
-// Uninitialized space tag
-constexpr AllocationSpace kNoSpace = AllocationSpace(255);
-
-// Checks whether the address is *logically* in the allocation_space.
-// This does not related the real MMTk space that contains the address,
-// but the V8 internal space expected by the runtime.
-//
-// TODO: Currently we record the space tag for each object. In the future we
-// need to link each allocation_space to a real MMTk space.
-bool Heap::InSpace(Address address, AllocationSpace allocation_space) {
-  for (auto tph_data : *tph_data_list) {
-    auto space = AllocationSpace(tph_archive_obj_to_space(tph_data->archive(), reinterpret_cast<void*>(address)));
-    if (space == kNoSpace) continue;
-    return space == allocation_space;
-  }
-  UNREACHABLE();
+bool Heap::InSpace(Address address, AllocationSpace v8_space) {
+  auto mmtk_space = mmtk::GetAllocationSemanticForV8Space(v8_space);
+  auto mmtk = get_tph_data(v8_heap->tp_heap_.get())->mmtk_heap();
+  return mmtk_in_space(mmtk, (void*) address, (size_t) mmtk_space) != 0;
 }
 
 bool Heap::IsImmovable(HeapObject object) {

@@ -22,6 +22,44 @@ typedef void* MMTk_TraceLocal;
 typedef void* MMTk_Heap;
 typedef void* MMTk_Heap_Archive;
 
+namespace mmtk {
+  namespace i = v8::internal;
+  namespace base = v8::base;
+  namespace tph = v8::internal::third_party_heap;
+
+  enum class MMTkAllocationSemantic: uint8_t {
+    kDefault = 0,
+    kImmortal = 1,
+    kLos = 2,
+    kCode = 3,
+    kReadOnly = 4,
+    kLargeCode = 5,
+  };
+
+  V8_INLINE MMTkAllocationSemantic GetAllocationSemanticForV8Space(i::AllocationSpace space) {
+    switch (space) {
+      case i::RO_SPACE:      return mmtk::MMTkAllocationSemantic::kReadOnly;
+      case i::OLD_SPACE:     return mmtk::MMTkAllocationSemantic::kDefault;
+      case i::CODE_SPACE:    return mmtk::MMTkAllocationSemantic::kCode;
+      case i::MAP_SPACE:     return mmtk::MMTkAllocationSemantic::kImmortal;
+      case i::LO_SPACE:      return mmtk::MMTkAllocationSemantic::kLos;
+      case i::CODE_LO_SPACE: return mmtk::MMTkAllocationSemantic::kLargeCode;
+      default:            UNREACHABLE();
+    }
+  }
+
+  V8_INLINE MMTkAllocationSemantic GetAllocationSemanticForV8AllocationType(i::AllocationType type, bool large) {
+    if (type == i::AllocationType::kCode) {
+      return large ? MMTkAllocationSemantic::kLargeCode : MMTkAllocationSemantic::kCode;
+    } else if (type == i::AllocationType::kReadOnly) {
+      return MMTkAllocationSemantic::kReadOnly;
+    } else if (type == i::AllocationType::kMap) {
+      return MMTkAllocationSemantic::kImmortal;
+    } else {
+      return large ? MMTkAllocationSemantic::kLos : MMTkAllocationSemantic::kDefault;
+    }
+  }
+}
 
 namespace v8 {
 namespace internal {
@@ -101,12 +139,11 @@ extern void start_worker(void *tls, void* worker);
 extern MMTk_Heap    v8_new_heap(void* calls, size_t heap_size);
 extern void*    tph_archive_new();
 extern void     tph_archive_delete(void* arch);
-extern void     tph_archive_insert(void* arch, void* object, void* isolate, uint8_t space);
+extern void     tph_archive_insert(void* arch, void* object, void* isolate);
 extern void     tph_archive_remove(void* arch, void* object);
 extern void     tph_archive_iter_reset(void* arch);
 extern void*    tph_archive_iter_next(void* arch);
 extern void*    tph_archive_inner_to_obj(void* arch, void* inner_ptr);
-extern uint8_t  tph_archive_obj_to_space(void* arch, void* obj_ptr);
 extern int mmtk_in_space(void* mmtk, void* object, size_t space);
 
 extern void release_buffer(void** buffer, size_t len, size_t cap);
@@ -168,10 +205,6 @@ extern void* mmtk_get_forwarded_object(v8::internal::Object o);
 // Helpers
 
 namespace mmtk {
-  namespace i = v8::internal;
-  namespace base = v8::base;
-  namespace tph = v8::internal::third_party_heap;
-
   V8_INLINE bool is_live(i::HeapObject o) {
     return mmtk_object_is_live(reinterpret_cast<void*>(o.address())) != 0;
   }

@@ -66,8 +66,12 @@ pub extern "C" fn bind_mutator(
 #[no_mangle]
 pub unsafe extern "C" fn mmtk_in_space(mmtk: &'static MMTK<V8>, object: ObjectReference, space: AllocationSemantics) -> i32 {
     match space {
+        AllocationSemantics::Default => mmtk.plan.in_default_space(object) as _,
         AllocationSemantics::ReadOnly => mmtk.plan.base().ro_space.in_space(object) as _,
-        _ => unreachable!()
+        AllocationSemantics::Immortal => mmtk.plan.common().immortal.in_space(object) as _,
+        AllocationSemantics::Los => mmtk.plan.common().los.in_space(object) as _,
+        AllocationSemantics::Code => mmtk.plan.base().code_space.in_space(object) as _,
+        AllocationSemantics::LargeCode => mmtk.plan.base().code_lo_space.in_space(object) as _,
     }
 }
 
@@ -144,7 +148,7 @@ pub extern "C" fn scan_region(mmtk: &mut MMTK<V8>) {
 #[no_mangle]
 pub extern "C" fn mmtk_object_is_live(object: ObjectReference) -> usize {
     debug_assert_eq!(object.to_address().as_usize() & 0b11, 0);
-    if crate::object_archive::global_object_archive().object_to_space(object.to_address()) == Some(0) {
+    if crate::SINGLETON.plan.base().ro_space.in_space(object) {
         return 1;
     }
     if object.is_reachable() { 1 } else { 0 }

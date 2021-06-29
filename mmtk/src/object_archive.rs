@@ -133,7 +133,7 @@ impl ObjectArchive {
         let mut new_space_map = HashMap::new();
         for object in &self.untagged_objects {
             debug_assert_eq!(object.to_address().as_usize() & 0b11, 0);
-            if object.is_live() {
+            if object.is_reachable() || self.space_map[&object] == 0 {
                 let new_object = object.get_forwarded_object().unwrap_or(*object);
                 debug_assert_eq!(new_object.to_address().as_usize() & 0b11, 0);
                 new_objects.push(new_object);

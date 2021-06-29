@@ -84,11 +84,8 @@ pub extern "C" fn alloc(
     size: usize,
     align: usize,
     offset: isize,
-    mut semantics: AllocationSemantics,
+    semantics: AllocationSemantics,
 ) -> Address {
-    if semantics == AllocationSemantics::Code {
-        semantics = AllocationSemantics::Los;
-    }
     let a = memory_manager::alloc::<V8>(mutator, size, align, offset, semantics);
     unsafe { memory_manager::post_alloc::<V8>(mutator, a.to_object_reference(), size, semantics); }
     a
@@ -147,6 +144,11 @@ pub extern "C" fn scan_region(mmtk: &mut MMTK<V8>) {
 #[no_mangle]
 pub extern "C" fn is_live_object(object: ObjectReference) -> bool {
     object.is_live()
+}
+
+#[no_mangle]
+pub extern "C" fn is_live_object2(object: ObjectReference) -> bool {
+    object.is_reachable()
 }
 
 #[no_mangle]

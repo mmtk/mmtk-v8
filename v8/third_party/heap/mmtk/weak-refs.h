@@ -22,8 +22,11 @@ namespace i = v8::internal;
 namespace base = v8::base;
 namespace tph = v8::internal::third_party_heap;
 
-bool is_live(i::HeapObject o) {
-  return is_live_object(reinterpret_cast<void*>(o.address()));
+bool is_live2(i::HeapObject o) {
+  if (tph::Heap::InReadOnlySpace(o.address())) {
+    return true;
+  }
+  return is_live_object2(reinterpret_cast<void*>(o.address()));
 }
 
 i::MaybeObject to_weakref(i::HeapObject o) {
@@ -46,7 +49,7 @@ class MMTkWeakObjectRetainer: public i::WeakObjectRetainer {
     // LOG("RetainAs %p\n", (void*) object.ptr());
     if (object == i::Object()) return object;
     auto heap_object = i::HeapObject::cast(object);
-    if (is_live(heap_object)) {
+    if (is_live2(heap_object)) {
       auto f = mmtk_get_forwarded_object(heap_object);
       if (f != nullptr) {
         // LOG("%p -> %p\n", (void*) object.ptr(), (void*) f);
@@ -79,7 +82,7 @@ class InternalizedStringTableCleaner : public i::RootVisitor {
       if (o.IsHeapObject()) {
         auto heap_object = i::HeapObject::cast(o);
         DCHECK(!i::Heap::InYoungGeneration(heap_object));
-        if (!is_live(heap_object)) {
+        if (!is_live2(heap_object)) {
           pointers_removed_++;
           // Set the entry to the_hole_value (as deleted).
           p.store(i::StringTable::deleted_element());
@@ -109,7 +112,7 @@ class ExternalStringTableCleaner : public i::RootVisitor {
       i::Object o = *p;
       if (o.IsHeapObject()) {
         auto heap_object = i::HeapObject::cast(o);
-        if (!is_live(heap_object)) {
+        if (!is_live2(heap_object)) {
           if (o.IsExternalString()) {
             heap_->FinalizeExternalString(i::String::cast(o));
           } else {
@@ -189,7 +192,7 @@ class WeakRefs {
 
     // Mark the uncompiled data as black, and ensure all fields have already been
     // marked.
-    DCHECK(is_live(inferred_name));
+    DCHECK(is_live2(inferred_name));
     // DCHECK(is_live(uncompiled_data));
 
     trace_((void*) &uncompiled_data);
@@ -214,7 +217,7 @@ class WeakRefs {
           flushing_candidate.set_function_data(*f, v8::kReleaseStore);
         }
       }
-      if (!is_live(flushing_candidate.GetBytecodeArray(heap()->isolate()))) {
+      if (!is_live2(flushing_candidate.GetBytecodeArray(heap()->isolate()))) {
         FlushBytecodeFromSFI(flushing_candidate);
       } else {
         DCHECK(!get_forwarded_ref(flushing_candidate.GetBytecodeArray(heap()->isolate())));
@@ -255,7 +258,7 @@ class WeakRefs {
             continue;
           }
           auto parent = i::Map::cast(map.constructor_or_back_pointer());
-          bool parent_is_alive = is_live(parent);
+          bool parent_is_alive = is_live2(parent);
           if (parent_is_alive) {
             DCHECK(!get_forwarded_ref(parent));
           }
@@ -277,7 +280,7 @@ class WeakRefs {
         DCHECK(isolate()->has_active_deserializer());
         DCHECK_EQ(raw_target.ToSmi(), i::Deserializer::uninitialized_field_value());
         return false;
-      } else if (!is_live(i::TransitionsAccessor::GetTargetFromRaw(raw_target))) {
+      } else if (!is_live2(i::TransitionsAccessor::GetTargetFromRaw(raw_target))) {
         return true;
       } else {
         DCHECK(!get_forwarded_ref(i::TransitionsAccessor::GetTargetFromRaw(raw_target)));
@@ -298,7 +301,7 @@ class WeakRefs {
     for (int i = 0; i < num_transitions; ++i) {
       i::Map target = transitions.GetTarget(i);
       DCHECK_EQ(target.constructor_or_back_pointer(), map);
-      if (!is_live(target)) {
+      if (!is_live2(target)) {
         if (!descriptors.is_null() &&
             target.instance_descriptors(isolate()) == descriptors) {
           DCHECK(!target.is_prototype_map());
@@ -395,7 +398,7 @@ class WeakRefs {
     while (weak_objects_.ephemeron_hash_tables.Pop(kMainThreadTask, &table)) {
       for (i::InternalIndex i : table.IterateEntries()) {
         auto key = i::HeapObject::cast(table.KeyAt(i));
-        if (!is_live(key)) {
+        if (!is_live2(key)) {
           table.RemoveEntry(i);
         } else {
           if (auto f = get_forwarded_ref(key)) {
@@ -411,7 +414,7 @@ class WeakRefs {
       }
     }
     for (auto it = heap()->ephemeron_remembered_set_.begin(); it != heap()->ephemeron_remembered_set_.end();) {
-      if (!is_live(it->first)) {
+      if (!is_live2(it->first)) {
         it = heap()->ephemeron_remembered_set_.erase(it);
       } else {
         DCHECK(!get_forwarded_ref(it->first));
@@ -430,7 +433,7 @@ class WeakRefs {
       i::MaybeObjectSlot location(slot.second);
       if ((*location)->GetHeapObjectIfWeak(&value)) {
         DCHECK(!value.IsCell());
-        if (is_live(value)) {
+        if (is_live2(value)) {
           // The value of the weak reference is alive.
           // RecordSlot(slot.first, HeapObjectSlot(location), value);
           auto forwarded = get_forwarded_ref(value);
@@ -467,9 +470,9 @@ class WeakRefs {
   }
 
   void ClearPotentialSimpleMapTransition(i::Map dead_target) {
-    DCHECK(!is_live(dead_target));
+    DCHECK(!is_live2(dead_target));
     auto potential_parent = dead_target.constructor_or_back_pointer();
-    if (is_live(i::HeapObject::cast(potential_parent))) {
+    if (is_live2(i::HeapObject::cast(potential_parent))) {
       if (auto f = get_forwarded_ref(i::HeapObject::cast(potential_parent))) {
         potential_parent = *f;
       }
@@ -477,10 +480,10 @@ class WeakRefs {
     if (potential_parent.IsMap()) {
       auto parent = i::Map::cast(potential_parent);
       i::DisallowGarbageCollection no_gc_obviously;
-      if (is_live(parent)) {
+      if (is_live2(parent)) {
           DCHECK(!get_forwarded_ref(parent));
       }
-      if (is_live(parent) && i::TransitionsAccessor(isolate(), parent, &no_gc_obviously).HasSimpleTransitionTo(dead_target)) {
+      if (is_live2(parent) && i::TransitionsAccessor(isolate(), parent, &no_gc_obviously).HasSimpleTransitionTo(dead_target)) {
         ClearPotentialSimpleMapTransition(parent, dead_target);
       }
     }
@@ -503,7 +506,7 @@ class WeakRefs {
     i::JSWeakRef weak_ref;
     while (weak_objects_.js_weak_refs.Pop(kMainThreadTask, &weak_ref)) {
       auto target = i::HeapObject::cast(weak_ref.target());
-      if (!is_live(target)) {
+      if (!is_live2(target)) {
         weak_ref.set_target(i::ReadOnlyRoots(isolate()).undefined_value());
       } else {
         auto forwarded = get_forwarded_ref(weak_ref.target());
@@ -521,12 +524,12 @@ class WeakRefs {
         // }
       };
       auto target = i::HeapObject::cast(weak_cell.target());
-      if (!is_live(target)) {
+      if (!is_live2(target)) {
         DCHECK(!target.IsUndefined());
         // The value of the WeakCell is dead.
         auto finalization_registry = i::JSFinalizationRegistry::cast(weak_cell.finalization_registry());
         if (auto f = get_forwarded_ref(finalization_registry)) finalization_registry = i::JSFinalizationRegistry::cast(*f);
-        DCHECK(is_live(finalization_registry));
+        DCHECK(is_live2(finalization_registry));
         if (!finalization_registry.scheduled_for_cleanup()) {
           heap()->EnqueueDirtyJSFinalizationRegistry(finalization_registry, gc_notify_updated_slot);
         }
@@ -548,7 +551,7 @@ class WeakRefs {
 
       i::ObjectSlot slot = weak_cell.RawField(i::WeakCell::kUnregisterTokenOffset);
       i::HeapObject unregister_token = i::HeapObject::cast(*slot);//weak_cell.unregister_token();
-      if (!is_live(unregister_token)) {
+      if (!is_live2(unregister_token)) {
         // The unregister token is dead. Remove any corresponding entries in the
         // key map. Multiple WeakCell with the same token will have all their
         // unregister_token field set to undefined when processing the first
@@ -579,7 +582,7 @@ class WeakRefs {
     while (weak_objects_.weak_objects_in_code.Pop(kMainThreadTask, &weak_object_in_code)) {
       auto object = weak_object_in_code.first;
       auto code = weak_object_in_code.second;
-      auto object_is_live = is_live(object);
+      auto object_is_live = is_live2(object);
       if (!object_is_live && !code.embedded_objects_cleared()) {
         if (!code.marked_for_deoptimization()) {
           code.SetMarkedForDeoptimization("weak objects");
@@ -620,8 +623,8 @@ class WeakRefs {
   }
 
   void ProcessEphemeron(i::Ephemeron ephemeron) {
-    if (is_live(ephemeron.key)) {
-      if (!is_live(ephemeron.value)) {
+    if (is_live2(ephemeron.key)) {
+      if (!is_live2(ephemeron.value)) {
         trace_((void*) &ephemeron.value);
       }
     } else {

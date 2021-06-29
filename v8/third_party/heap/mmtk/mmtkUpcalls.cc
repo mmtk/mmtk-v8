@@ -85,18 +85,16 @@ static void* mmtk_get_mmtk_mutator(void* tls) {
   UNIMPLEMENTED();
 }
 
-extern thread_local bool is_mutator;
-
 static bool mmtk_is_mutator(void* tls) {
-  return is_mutator;
+  return mmtk::mutator != nullptr;
 }
 
-extern std::vector<BumpAllocator*>* all_mutators;
 size_t index = 0;
 
 static void* mmtk_get_next_mutator() {
-  if (index >= all_mutators->size()) return nullptr;
-  return (*all_mutators)[index++];
+  auto& mutators = mmtk::get_mmtk_mutators(v8_heap);
+  if (index >= mutators.size()) return nullptr;
+  return mutators[index++];
 }
 
 static void mmtk_reset_mutator_iterator() {

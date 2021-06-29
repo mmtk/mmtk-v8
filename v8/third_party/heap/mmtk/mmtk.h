@@ -22,81 +22,6 @@ typedef void* MMTk_TraceLocal;
 typedef void* MMTk_Heap;
 typedef void* MMTk_Heap_Archive;
 
-namespace mmtk {
-  namespace i = v8::internal;
-  namespace base = v8::base;
-  namespace tph = v8::internal::third_party_heap;
-
-  enum class MMTkAllocationSemantic: uint8_t {
-    kDefault = 0,
-    kImmortal = 1,
-    kLos = 2,
-    kCode = 3,
-    kReadOnly = 4,
-    kLargeCode = 5,
-  };
-
-  V8_INLINE MMTkAllocationSemantic GetAllocationSemanticForV8Space(i::AllocationSpace space) {
-    switch (space) {
-      case i::RO_SPACE:      return mmtk::MMTkAllocationSemantic::kReadOnly;
-      case i::OLD_SPACE:     return mmtk::MMTkAllocationSemantic::kDefault;
-      case i::CODE_SPACE:    return mmtk::MMTkAllocationSemantic::kCode;
-      case i::MAP_SPACE:     return mmtk::MMTkAllocationSemantic::kImmortal;
-      case i::LO_SPACE:      return mmtk::MMTkAllocationSemantic::kLos;
-      case i::CODE_LO_SPACE: return mmtk::MMTkAllocationSemantic::kLargeCode;
-      default:            UNREACHABLE();
-    }
-  }
-
-  V8_INLINE MMTkAllocationSemantic GetAllocationSemanticForV8AllocationType(i::AllocationType type, bool large) {
-    if (type == i::AllocationType::kCode) {
-      return large ? MMTkAllocationSemantic::kLargeCode : MMTkAllocationSemantic::kCode;
-    } else if (type == i::AllocationType::kReadOnly) {
-      return MMTkAllocationSemantic::kReadOnly;
-    } else if (type == i::AllocationType::kMap) {
-      return MMTkAllocationSemantic::kImmortal;
-    } else {
-      return large ? MMTkAllocationSemantic::kLos : MMTkAllocationSemantic::kDefault;
-    }
-  }
-}
-
-namespace v8 {
-namespace internal {
-
-class Isolate;
-
-namespace third_party_heap {
-
-class Heap;
-
-class TPHData {
-  Heap*  v8_tph_;
-  MMTk_Heap mmtk_heap_;
-  v8::internal::Isolate* isolate_;
-  MMTk_Heap_Archive tph_archive_;
-
- public:
-  Heap* v8_tph() { return v8_tph_; }
-  MMTk_Heap mmtk_heap() { return mmtk_heap_; }
-  v8::internal::Isolate * isolate() { return isolate_; }
-  MMTk_Heap_Archive archive() { return tph_archive_; }
-
-  TPHData(Heap* v8_tph, MMTk_Heap mmtk_heap, Isolate* isolate, MMTk_Heap_Archive tph_archive):
-    v8_tph_(v8_tph), mmtk_heap_(mmtk_heap), isolate_(isolate), tph_archive_(tph_archive) {}
-};
-
-class BumpAllocator {
- public:
-  TPHData* tph_data;
-  uintptr_t cursor;
-  uintptr_t limit;
-  void* space;
-};
-
-} // third_party_heap
-} // internal
-} // v8
 /**
  * Allocation
  */
@@ -204,27 +129,6 @@ extern void* mmtk_get_forwarded_object(v8::internal::Object o);
 
 // Helpers
 
-namespace mmtk {
-  V8_INLINE bool is_live(i::HeapObject o) {
-    return mmtk_object_is_live(reinterpret_cast<void*>(o.address())) != 0;
-  }
-
-  V8_INLINE i::MaybeObject to_weakref(i::HeapObject o) {
-    DCHECK(o.IsStrong());
-    return i::MaybeObject::MakeWeak(i::MaybeObject::FromObject(o));
-  }
-
-  V8_INLINE base::Optional<i::HeapObject> get_forwarded_ref(i::HeapObject o) {
-    auto f = mmtk_get_forwarded_object(o);
-    if (f != nullptr) {
-      auto x = i::HeapObject::cast(i::Object((i::Address) f));
-      return x;
-    }
-    return base::nullopt;
-  }
-}
-
-
 namespace v8 {
 namespace internal {
 namespace third_party_heap {
@@ -259,10 +163,107 @@ class Impl {
   V8_INLINE static bool TransitionsAccessor_HasSimpleTransitionTo(Isolate* isolate, Map parent, Map target, DisallowGarbageCollection* no_gc) {
     return TransitionsAccessor(isolate, parent, no_gc).HasSimpleTransitionTo(target);
   }
+
+  V8_INLINE static Heap* get_tp_heap(v8::internal::Heap* heap) {
+    return heap->tp_heap_.get();
+  }
+
+  V8_INLINE Impl(MMTk_Heap mmtk_heap, Isolate* isolate, MMTk_Heap_Archive tph_archive)
+    : mmtk_heap_(mmtk_heap), isolate_(isolate), tph_archive_(tph_archive) {}
+
+  MMTk_Heap mmtk_heap_;
+  v8::internal::Isolate* isolate_;
+  MMTk_Heap_Archive tph_archive_;
+  std::vector<MMTk_Mutator> mutators_ {};
 };
+
+// TODO(wenyuzhao): We only support one heap at the moment.
+extern v8::internal::Heap* v8_heap;
 
 }
 }
+}
+
+namespace mmtk {
+
+namespace i = v8::internal;
+namespace base = v8::base;
+namespace tph = v8::internal::third_party_heap;
+
+// TODO(wenyuzhao): Using of thread_local is incorrect for multiple isolates.
+extern thread_local MMTk_Mutator mutator;
+
+enum class MMTkAllocationSemantic: uint8_t {
+  kDefault = 0,
+  kImmortal = 1,
+  kLos = 2,
+  kCode = 3,
+  kReadOnly = 4,
+  kLargeCode = 5,
+};
+
+V8_INLINE MMTkAllocationSemantic GetAllocationSemanticForV8Space(i::AllocationSpace space) {
+  switch (space) {
+    case i::RO_SPACE:      return mmtk::MMTkAllocationSemantic::kReadOnly;
+    case i::OLD_SPACE:     return mmtk::MMTkAllocationSemantic::kDefault;
+    case i::CODE_SPACE:    return mmtk::MMTkAllocationSemantic::kCode;
+    case i::MAP_SPACE:     return mmtk::MMTkAllocationSemantic::kImmortal;
+    case i::LO_SPACE:      return mmtk::MMTkAllocationSemantic::kLos;
+    case i::CODE_LO_SPACE: return mmtk::MMTkAllocationSemantic::kLargeCode;
+    default:            UNREACHABLE();
+  }
+}
+
+V8_INLINE MMTkAllocationSemantic GetAllocationSemanticForV8AllocationType(i::AllocationType type, bool large) {
+  if (type == i::AllocationType::kCode) {
+    return large ? MMTkAllocationSemantic::kLargeCode : MMTkAllocationSemantic::kCode;
+  } else if (type == i::AllocationType::kReadOnly) {
+    return MMTkAllocationSemantic::kReadOnly;
+  } else if (type == i::AllocationType::kMap) {
+    return MMTkAllocationSemantic::kImmortal;
+  } else {
+    return large ? MMTkAllocationSemantic::kLos : MMTkAllocationSemantic::kDefault;
+  }
+}
+
+V8_INLINE bool is_live(i::HeapObject o) {
+  return mmtk_object_is_live(reinterpret_cast<void*>(o.address())) != 0;
+}
+
+V8_INLINE i::MaybeObject to_weakref(i::HeapObject o) {
+  DCHECK(o.IsStrong());
+  return i::MaybeObject::MakeWeak(i::MaybeObject::FromObject(o));
+}
+
+V8_INLINE base::Optional<i::HeapObject> get_forwarded_ref(i::HeapObject o) {
+  auto f = mmtk_get_forwarded_object(o);
+  if (f != nullptr) {
+    auto x = i::HeapObject::cast(i::Object((i::Address) f));
+    return x;
+  }
+  return base::nullopt;
+}
+
+V8_INLINE std::vector<MMTk_Mutator>& get_mmtk_mutators(i::Heap* heap) {
+  return tph::Impl::get_tp_heap(heap)->impl()->mutators_;
+}
+
+V8_INLINE MMTk_Heap get_mmtk_instance(i::Heap* heap) {
+  return tph::Impl::get_tp_heap(heap)->impl()->mmtk_heap_;
+}
+
+V8_INLINE MMTk_Heap get_mmtk_instance(tph::Heap* tp_heap) {
+  return tp_heap->impl()->mmtk_heap_;
+}
+
+V8_INLINE MMTk_Heap get_object_archive(tph::Heap* tp_heap) {
+  return tp_heap->impl()->tph_archive_;
+}
+
+V8_INLINE i::Isolate* get_isolate(tph::Heap* tp_heap) {
+  return tp_heap->impl()->isolate_;
+}
+
 }
 
 #endif // MMTK_H

@@ -149,7 +149,7 @@ class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
 
       auto value_slot = table.RawFieldOfElementAt(i::EphemeronHashTable::EntryToValueIndex(i));
 
-      if (is_live2(key)) {
+      if (is_live(key)) {
         if (auto f = get_forwarded_ref(key)) {
           key_slot.store(*f);
         }
@@ -355,7 +355,7 @@ class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
  private:
   template<class TSlot>
   V8_INLINE void ProcessEdge(i::HeapObject host, TSlot slot) {
-    DCHECK(mmtk::is_live2(host));
+    DCHECK(mmtk::is_live(host));
     DCHECK(!mmtk::get_forwarded_ref(host));
     i::HeapObject object;
     if ((*slot).GetHeapObjectIfStrong(&object)) {
@@ -474,10 +474,10 @@ class MMTkHeapVerifier: public i::RootVisitor, public i::ObjectVisitor {
         printf("Dead edge %p.%p -> %p\n", (void*) host.ptr(), (void*) edge, (void*) o.ptr());
       }
       CHECK(tph::Heap::IsValidHeapObject(o));
-      if (!is_live2(o)) {
+      if (!is_live(o)) {
         printf("Dead edge %p.%p -> %p\n", (void*) host.ptr(), (void*) edge, (void*) o.ptr());
       }
-      CHECK(is_live2(o));
+      CHECK(is_live(o));
       if (get_forwarded_ref(o)) {
         printf("Unforwarded edge %p.%p -> %p\n", (void*) host.ptr(), (void*) edge, (void*) o.ptr());
       }

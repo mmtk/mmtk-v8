@@ -4,6 +4,8 @@
 #include "src/heap/third-party/heap-api.h"
 #include "src/base/address-region.h"
 #include "src/heap/heap.h"
+#include "src/objects/objects.h"
+#include "src/objects/objects-inl.h"
 #include "src/execution/isolate.h"
 #include <stdbool.h>
 #include <stddef.h>
@@ -71,8 +73,7 @@ extern void* alloc_slow(MMTk_Mutator mutator, size_t size,
 extern void post_alloc(MMTk_Mutator mutator, void* refer,
     int bytes, int allocator);
 
-extern bool is_live_object(void* ref);
-extern bool is_live_object2(void* ref);
+extern size_t mmtk_object_is_live(void* ref);
 extern bool is_mapped_object(void* ref);
 extern bool is_mapped_address(void* addr);
 extern void modify_check(void *mmtk, void* ref);
@@ -163,5 +164,31 @@ extern void* mmtk_get_forwarded_object(v8::internal::Object o);
 #ifdef __cplusplus
 }
 #endif
+
+// Helpers
+
+namespace mmtk {
+  namespace i = v8::internal;
+  namespace base = v8::base;
+  namespace tph = v8::internal::third_party_heap;
+
+  V8_INLINE bool is_live(i::HeapObject o) {
+    return mmtk_object_is_live(reinterpret_cast<void*>(o.address())) != 0;
+  }
+
+  V8_INLINE i::MaybeObject to_weakref(i::HeapObject o) {
+    DCHECK(o.IsStrong());
+    return i::MaybeObject::MakeWeak(i::MaybeObject::FromObject(o));
+  }
+
+  V8_INLINE base::Optional<i::HeapObject> get_forwarded_ref(i::HeapObject o) {
+    auto f = mmtk_get_forwarded_object(o);
+    if (f != nullptr) {
+      auto x = i::HeapObject::cast(i::Object((i::Address) f));
+      return x;
+    }
+    return base::nullopt;
+  }
+}
 
 #endif // MMTK_H

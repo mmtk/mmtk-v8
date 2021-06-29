@@ -171,10 +171,7 @@ bool Heap::InLargeObjectSpace(Address address) {
 }
 
 bool Heap::IsValidHeapObject(HeapObject object) {
-  if (InReadOnlySpace(object.address())) {
-    return true;
-  }
-  return is_live_object2(reinterpret_cast<void*>(object.address()));
+  return mmtk_object_is_live(reinterpret_cast<void*>(object.address())) != 0;
 }
 
 void Heap::ResetIterator() {

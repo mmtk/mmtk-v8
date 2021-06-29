@@ -142,13 +142,12 @@ pub extern "C" fn scan_region(mmtk: &mut MMTK<V8>) {
 }
 
 #[no_mangle]
-pub extern "C" fn is_live_object(object: ObjectReference) -> bool {
-    object.is_live()
-}
-
-#[no_mangle]
-pub extern "C" fn is_live_object2(object: ObjectReference) -> bool {
-    object.is_reachable()
+pub extern "C" fn mmtk_object_is_live(object: ObjectReference) -> usize {
+    debug_assert_eq!(object.to_address().as_usize() & 0b11, 0);
+    if crate::object_archive::global_object_archive().object_to_space(object.to_address()) == Some(0) {
+        return 1;
+    }
+    if object.is_reachable() { 1 } else { 0 }
 }
 
 #[no_mangle]

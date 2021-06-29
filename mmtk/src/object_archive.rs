@@ -54,7 +54,7 @@ pub extern "C" fn tph_archive_inner_to_obj(
 #[no_mangle]
 pub extern "C" fn tph_archive_obj_to_space(arch: *mut c_void, obj_ptr: *mut c_void) -> u8 {
     let arch = unsafe { Box::from_raw(arch as *mut ObjectArchive) };
-    let res = arch.object_to_space(Address::from_mut_ptr(obj_ptr));
+    let res = arch.object_to_space(Address::from_mut_ptr(obj_ptr)).unwrap();
     Box::into_raw(arch);
     res
 }
@@ -122,10 +122,10 @@ impl ObjectArchive {
         self.untagged_objects[idx].to_address()
     }
 
-    pub fn object_to_space(&self, mut obj_addr: Address) -> u8 {
+    pub fn object_to_space(&self, mut obj_addr: Address) -> Option<u8> {
         obj_addr = unsafe { Address::from_usize(obj_addr.as_usize() & !0b11) };
         debug_assert_eq!(obj_addr.as_usize() & 0b11, 0);
-        unsafe { self.space_map[&obj_addr.to_object_reference()] }
+        unsafe { self.space_map.get(&obj_addr.to_object_reference()).cloned() }
     }
 
     pub fn update(&mut self) {

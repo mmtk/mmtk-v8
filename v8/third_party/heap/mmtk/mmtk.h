@@ -224,4 +224,45 @@ namespace mmtk {
   }
 }
 
+
+namespace v8 {
+namespace internal {
+namespace third_party_heap {
+
+class Impl {
+ public:
+  V8_INLINE static void ProcessAllWeakReferences(v8::internal::Heap* heap, WeakObjectRetainer* retainer) {
+    heap->ProcessAllWeakReferences(retainer);
+  }
+
+  V8_INLINE static void UpdateExternalStringTable(v8::internal::Heap* heap, RootVisitor* external_visitor) {
+    heap->external_string_table_.IterateAll(external_visitor);
+    heap->external_string_table_.CleanUpAll();
+  }
+
+  V8_INLINE static void EphemeronHashTable_RemoveEntry(EphemeronHashTable& table, InternalIndex entry) {
+    table.RemoveEntry(entry);
+  }
+
+  V8_INLINE static void TransitionArray_SetNumberOfTransitions(TransitionArray& array, int number_of_transitions) {
+    array.SetNumberOfTransitions(number_of_transitions);
+  }
+
+  V8_INLINE static int TransitionArray_Capacity(TransitionArray& array) {
+    return array.Capacity();
+  }
+
+  V8_INLINE static Map TransitionsAccessor_GetTargetFromRaw(MaybeObject raw) {
+    return TransitionsAccessor::GetTargetFromRaw(raw);
+  }
+
+  V8_INLINE static bool TransitionsAccessor_HasSimpleTransitionTo(Isolate* isolate, Map parent, Map target, DisallowGarbageCollection* no_gc) {
+    return TransitionsAccessor(isolate, parent, no_gc).HasSimpleTransitionTo(target);
+  }
+};
+
+}
+}
+}
+
 #endif // MMTK_H

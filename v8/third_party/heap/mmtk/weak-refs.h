@@ -255,10 +255,10 @@ class WeakRefs {
         DCHECK(isolate()->has_active_deserializer());
         DCHECK_EQ(raw_target.ToSmi(), i::Deserializer::uninitialized_field_value());
         return false;
-      } else if (!is_live(i::TransitionsAccessor::GetTargetFromRaw(raw_target))) {
+      } else if (!is_live(tph::Impl::TransitionsAccessor_GetTargetFromRaw(raw_target))) {
         return true;
       } else {
-        DCHECK(!get_forwarded_ref(i::TransitionsAccessor::GetTargetFromRaw(raw_target)));
+        DCHECK(!get_forwarded_ref(tph::Impl::TransitionsAccessor_GetTargetFromRaw(raw_target)));
       }
     }
     return false;
@@ -307,10 +307,10 @@ class WeakRefs {
     // such that number_of_transitions() == 0. If this assumption changes,
     // TransitionArray::Insert() will need to deal with the case that a transition
     // array disappeared during GC.
-    int trim = transitions.Capacity() - transition_index;
+    int trim = tph::Impl::TransitionArray_Capacity(transitions) - transition_index;
     if (trim > 0) {
       heap()->RightTrimWeakFixedArray(transitions, trim * i::TransitionArray::kEntrySize);
-      transitions.SetNumberOfTransitions(transition_index);
+      tph::Impl::TransitionArray_SetNumberOfTransitions(transitions, transition_index);
     }
     return descriptors_owner_died;
   }
@@ -374,7 +374,7 @@ class WeakRefs {
       for (i::InternalIndex i : table.IterateEntries()) {
         auto key = i::HeapObject::cast(table.KeyAt(i));
         if (!is_live(key)) {
-          table.RemoveEntry(i);
+          tph::Impl::EphemeronHashTable_RemoveEntry(table, i);
         } else {
           if (auto f = get_forwarded_ref(key)) {
             auto key_slot = table.RawFieldOfElementAt(i::EphemeronHashTable::EntryToIndex(i));
@@ -458,7 +458,8 @@ class WeakRefs {
       if (is_live(parent)) {
           DCHECK(!get_forwarded_ref(parent));
       }
-      if (is_live(parent) && i::TransitionsAccessor(isolate(), parent, &no_gc_obviously).HasSimpleTransitionTo(dead_target)) {
+      if (is_live(parent) &&
+          tph::Impl::TransitionsAccessor_HasSimpleTransitionTo(isolate(), parent, dead_target, &no_gc_obviously)) {
         ClearPotentialSimpleMapTransition(parent, dead_target);
       }
     }
@@ -683,13 +684,13 @@ class WeakRefs {
       string_table->NotifyElementsRemoved(internalized_visitor.PointersRemoved());
 
       ExternalStringTableCleaner external_visitor(heap());
-      heap()->UpdateExternalStringTable(&external_visitor);
+      tph::Impl::UpdateExternalStringTable(heap(), &external_visitor);
     }
     ClearOldBytecodeCandidates();
     ClearFlushedJsFunctions();
     {
       MMTkWeakObjectRetainer retainer;
-      heap()->ProcessAllWeakReferences(&retainer);
+      tph::Impl::ProcessAllWeakReferences(heap(), &retainer);
     }
     ClearFullMapTransitions();
     ClearWeakReferences();

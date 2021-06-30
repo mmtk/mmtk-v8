@@ -134,7 +134,6 @@ pub(crate) fn flush_roots<W: ProcessEdgesWork<VM = V8>>(_worker: &mut GCWorker<V
     let mut buf = vec![];
     unsafe { std::mem::swap(&mut buf, &mut ROOT_OBJECTS); }
     let scan_objects_work = mmtk::scheduler::gc_work::ScanObjects::<W>::new(buf, false);
-    println!("Flush Roots");
     mmtk::memory_manager::add_work_packet(
         &SINGLETON,
         WorkBucketStage::Closure,

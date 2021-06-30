@@ -2,7 +2,7 @@ use std::sync::atomic::Ordering;
 
 use super::UPCALLS;
 use mmtk::util::constants::{LOG_BITS_IN_WORD, LOG_BYTES_IN_PAGE, LOG_BYTES_IN_WORD};
-use mmtk::util::metadata::side_metadata::{LOCAL_SIDE_METADATA_VM_BASE_ADDRESS, SideMetadataSpec};
+use mmtk::util::metadata::side_metadata::{GLOBAL_SIDE_METADATA_VM_BASE_ADDRESS, LOCAL_SIDE_METADATA_VM_BASE_ADDRESS, SideMetadataSpec};
 use mmtk::util::metadata::{header_metadata::HeaderMetadataSpec, MetadataSpec};
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::*;
@@ -12,13 +12,13 @@ use V8;
 
 pub struct VMObjectModel {}
 
-const DUMMY_METADATA: MetadataSpec = MetadataSpec::InHeader(HeaderMetadataSpec {
-    bit_offset: 0,
-    num_of_bits: 0,
-});
-
 impl ObjectModel<V8> for VMObjectModel {
-    const GLOBAL_LOG_BIT_SPEC: MetadataSpec = DUMMY_METADATA;
+    const GLOBAL_LOG_BIT_SPEC: MetadataSpec = MetadataSpec::OnSide(SideMetadataSpec {
+        is_global: true,
+        offset: GLOBAL_SIDE_METADATA_VM_BASE_ADDRESS.as_usize(),
+        log_num_of_bits: 0,
+        log_min_obj_size: LOG_BYTES_IN_WORD as usize,
+    });
     const LOCAL_FORWARDING_POINTER_SPEC: MetadataSpec = MetadataSpec::InHeader(HeaderMetadataSpec {
         bit_offset: 0,
         num_of_bits: LOG_BITS_IN_WORD,

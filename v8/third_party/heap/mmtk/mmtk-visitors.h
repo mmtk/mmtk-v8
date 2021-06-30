@@ -172,25 +172,6 @@ class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
     // return table.SizeFromMap(map);
   }
 
-  V8_INLINE void VisitDescriptorArray(i::Map map, i::DescriptorArray array) {
-    // if (!ShouldVisit(array)) return;
-    VisitMapPointer(array);
-    // int size = i::DescriptorArray::BodyDescriptor::SizeOf(map, array);
-    VisitPointers(array, array.GetFirstPointerSlot(), array.GetDescriptorSlot(0));
-    VisitDescriptors(array, array.number_of_descriptors());
-  }
-
-  void VisitDescriptors(i::DescriptorArray descriptor_array, int number_of_own_descriptors) {
-    int16_t new_marked = static_cast<int16_t>(number_of_own_descriptors);
-    // int16_t old_marked = descriptor_array.UpdateNumberOfMarkedDescriptors(
-    //     heap_->gc_count(), new_marked);
-    // if (old_marked < new_marked) {
-      VisitPointers(descriptor_array,
-          i::MaybeObjectSlot(descriptor_array.GetDescriptorSlot(0)),
-          i::MaybeObjectSlot(descriptor_array.GetDescriptorSlot(new_marked)));
-    // }
-  }
-
   V8_INLINE void VisitWeakCell(i::Map map, i::WeakCell weak_cell) {
     // if (!ShouldVisit(weak_cell)) return;
 
@@ -317,6 +298,76 @@ class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
   }
 
 #endif
+
+  V8_INLINE void VisitDescriptorArray(i::Map map, i::DescriptorArray array) {
+    VisitMapPointer(array);
+    VisitPointers(array, array.GetFirstPointerSlot(), array.GetDescriptorSlot(0));
+    VisitDescriptors(array, array.number_of_descriptors());
+  }
+
+  void VisitDescriptors(i::DescriptorArray descriptor_array, int number_of_own_descriptors) {
+    int16_t new_marked = static_cast<int16_t>(number_of_own_descriptors);
+    // int16_t old_marked = descriptor_array.UpdateNumberOfMarkedDescriptors(
+    //     heap_->gc_count(), new_marked);
+    // if (old_marked < new_marked) {
+      VisitPointers(descriptor_array,
+          i::MaybeObjectSlot(descriptor_array.GetDescriptorSlot(0)),
+          i::MaybeObjectSlot(descriptor_array.GetDescriptorSlot(new_marked)));
+    // }
+  }
+
+  V8_INLINE void VisitMap(i::Map meta_map, i::Map map) {
+    int size = i::Map::BodyDescriptor::SizeOf(meta_map, map);
+    size += VisitDescriptorsForMap(map);
+    // Mark the pointer fields of the Map. If there is a transitions array, it has
+    // been marked already, so it is fine that one of these fields contains a
+    // pointer to it.
+    i::Map::BodyDescriptor::IterateBody(meta_map, map, size, this);
+  }
+
+  V8_INLINE int VisitDescriptorsForMap(i::Map map) {
+    if (!map.CanTransition()) return 0;
+    // Maps that can transition share their descriptor arrays and require
+    // special visiting logic to avoid memory leaks.
+    // Since descriptor arrays are potentially shared, ensure that only the
+    // descriptors that belong to this map are marked. The first time a
+    // non-empty descriptor array is marked, its header is also visited. The
+    // slot holding the descriptor array will be implicitly recorded when the
+    // pointer fields of this map are visited.
+    i::Object maybe_descriptors =
+        i::TaggedField<i::Object, i::Map::kInstanceDescriptorsOffset>::Acquire_Load(
+            heap_->isolate(), map);
+    // If the descriptors are a Smi, then this Map is in the process of being
+    // deserialized, and doesn't yet have an initialized descriptor field.
+    if (maybe_descriptors.IsSmi()) {
+      DCHECK_EQ(maybe_descriptors, i::Deserializer::uninitialized_field_value());
+      return 0;
+    }
+    auto descriptors = i::DescriptorArray::cast(maybe_descriptors);
+    // Don't do any special processing of strong descriptor arrays, let them get
+    // marked through the normal visitor mechanism.
+    if (descriptors.IsStrongDescriptorArray()) {
+      return 0;
+    }
+    // Mark weak DescriptorArray
+    auto old_descriptors = descriptors;
+    trace_field_((void*) &descriptors, context_);
+    if (old_descriptors != descriptors) {
+      i::TaggedField<i::Object, i::Map::kInstanceDescriptorsOffset>::Release_Store(map, descriptors);
+    }
+    auto size = i::DescriptorArray::BodyDescriptor::SizeOf(descriptors.map(), descriptors);
+    int number_of_own_descriptors = map.NumberOfOwnDescriptors();
+    if (number_of_own_descriptors) {
+      // It is possible that the concurrent marker observes the
+      // number_of_own_descriptors out of sync with the descriptors. In that
+      // case the marking write barrier for the descriptor array will ensure
+      // that all required descriptors are marked. The concurrent marker
+      // just should avoid crashing in that case. That's why we need the
+      // std::min<int>() below.
+      VisitDescriptors(descriptors, std::min<int>(number_of_own_descriptors, descriptors.number_of_descriptors()));
+    }
+    return size;
+  }
 
   virtual void VisitPointers(i::HeapObject host, i::ObjectSlot start, i::ObjectSlot end) override final {
     for (auto p = start; p < end; ++p) ProcessEdge(host, p);

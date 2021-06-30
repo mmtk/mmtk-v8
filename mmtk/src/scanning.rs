@@ -62,11 +62,13 @@ impl Scanning<V8> for VMScanning {
             unsafe {
                 let w = x as *mut GCWorker<V8>;
                 debug_assert!(ROOT_OBJECTS.is_empty());
+                ROOT_FLUSHED = false;
                 ((*UPCALLS).process_ephemerons)(trace_root::<W> as _, w as _, (*w).ordinal);
                 if !ROOT_OBJECTS.is_empty() {
                     flush_roots::<W>(&mut *w);
                 }
                 debug_assert!(ROOT_OBJECTS.is_empty());
+                ROOT_FLUSHED
             }
         }));
         mmtk::memory_manager::add_work_packet(
@@ -85,6 +87,7 @@ pub struct ProcessEphemerons<E: ProcessEdgesWork<VM = V8>>(PhantomData<E>);
 
 impl<E: ProcessEdgesWork<VM = V8>> ProcessEphemerons<E> {
     pub fn new() -> Self {
+        unreachable!();
         Self(PhantomData)
     }
 }
@@ -124,11 +127,14 @@ impl<E: ProcessEdgesWork<VM = V8>> GCWork<V8> for ScanAndForwardRoots<E> {
 }
 
 pub(crate) static mut ROOT_OBJECTS: Vec<ObjectReference> = Vec::new();
+pub(crate) static mut ROOT_FLUSHED: bool = false;
 
 pub(crate) fn flush_roots<W: ProcessEdgesWork<VM = V8>>(_worker: &mut GCWorker<V8>) {
+    unsafe { ROOT_FLUSHED = true; }
     let mut buf = vec![];
     unsafe { std::mem::swap(&mut buf, &mut ROOT_OBJECTS); }
     let scan_objects_work = mmtk::scheduler::gc_work::ScanObjects::<W>::new(buf, false);
+    println!("Flush Roots");
     mmtk::memory_manager::add_work_packet(
         &SINGLETON,
         WorkBucketStage::Closure,

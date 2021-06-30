@@ -117,9 +117,14 @@ class MMTkCustomRootBodyVisitor final : public i::ObjectVisitor {
 class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
  public:
   explicit MMTkEdgeVisitor(i::Heap* heap, ProcessEdgesFn process_edges, TraceFieldFn trace_field, void* context, int task_id)
-      : heap_(heap), process_edges_(process_edges), trace_field_(trace_field), context_(context), task_id_(task_id) {
+      : heap_(heap), process_edges_(process_edges), task_id_(task_id) {
+    trace_field_ = [=](i::HeapObject o) -> base::Optional<i::HeapObject> {
+      auto old = o;
+      trace_field((void*) &o, context);
+      return o != old ? base::make_optional(o) : base::nullopt;
+    };
     USE(heap_);
-    DCHECK(task_id <= 8);
+    DCHECK(1 <= task_id && task_id <= 7);
     NewBuffer buf = process_edges(NULL, 0, 0);
     buffer_ = buf.buf;
     cap_ = buf.cap;
@@ -280,22 +285,7 @@ class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
   // visitors. They're used for e.g., lists that are recreated after GC. The
   // default implementation treats them as strong pointers. Visitors who want to
   // ignore them must override this function with empty.
-  virtual void VisitCustomWeakPointers(i::HeapObject host, i::ObjectSlot start, i::ObjectSlot end) override final {
-    // for (auto p = start; p < end; ++p) {
-    //   printf("@weak? %p.%p -> %p\n", (void*) host.ptr(), (void*) p.address(), (void*) (*p).ptr());
-    //   i::HeapObject object;
-    //   if (i::ObjectSlot::kCanBeWeak && (*p).GetHeapObjectIfWeak(&object)) {
-    //     // printf("@weak %p.%p -> %p\n", (void*) host.ptr(), (void*) p.address(), (void*) (*p).ptr());
-    //     // auto s = i::HeapObjectSlot(p.address());
-    //     // weak_objects_->weak_references.Push(task_id_, std::make_pair(host, s));
-    //   } else if ((*p).GetHeapObjectIfStrong(&object)) {
-
-    //     printf("@string %p.%p -> %p\n", (void*) host.ptr(), (void*) p.address(), (void*) (*p).ptr());
-    //     auto s = i::HeapObjectSlot(p.address());
-    //     weak_objects_->weak_references.Push(task_id_, std::make_pair(host, s));
-    //   }
-    // }
-  }
+  virtual void VisitCustomWeakPointers(i::HeapObject host, i::ObjectSlot start, i::ObjectSlot end) override final {}
 
 #endif
 
@@ -350,9 +340,8 @@ class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
       return 0;
     }
     // Mark weak DescriptorArray
-    auto old_descriptors = descriptors;
-    trace_field_((void*) &descriptors, context_);
-    if (old_descriptors != descriptors) {
+    if (auto forwarded = trace_field_(descriptors)) {
+      descriptors = i::DescriptorArray::cast(*forwarded);
       i::TaggedField<i::Object, i::Map::kInstanceDescriptorsOffset>::Release_Store(map, descriptors);
     }
     auto size = i::DescriptorArray::BodyDescriptor::SizeOf(descriptors.map(), descriptors);
@@ -380,21 +369,22 @@ class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
   virtual void VisitCodeTarget(i::Code host, i::RelocInfo* rinfo) override final {
     auto target = i::Code::GetCodeFromTargetAddress(rinfo->target_address());
     DCHECK(!mmtk_is_movable(target));
-    trace_field_((void*) &target, context_);
-    DCHECK_EQ(target, i::Code::GetCodeFromTargetAddress(rinfo->target_address()));
+    auto forwarded = trace_field_(target);
+    DCHECK(!forwarded);
+    USE(forwarded);
   }
 
   virtual void VisitEmbeddedPointer(i::Code host, i::RelocInfo* rinfo) override final {
     auto o = rinfo->target_object();
-    auto f = mmtk::get_forwarded_ref(o);
-    if (f) {
-      rinfo->set_target_object(heap_, *f);
+    if (auto forwarded = mmtk::get_forwarded_ref(o)) {
+      rinfo->set_target_object(heap_, *forwarded);
     } else if (host.IsWeakObject(o) && WEAKREF_PROCESSING_BOOL) {
         DCHECK(i::RelocInfo::IsCodeTarget(rinfo->rmode()) || i::RelocInfo::IsEmbeddedObjectMode(rinfo->rmode()));
         weak_objects_->weak_objects_in_code.Push(task_id_, std::make_pair(o, host));
     } else {
-      trace_field_((void*) &o, context_);
-      if (o != rinfo->target_object()) rinfo->set_target_object(heap_, o);
+      if (auto forwarded = trace_field_(o)) {
+        rinfo->set_target_object(heap_, *forwarded);
+      }
     }
   }
 
@@ -439,13 +429,12 @@ class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
 
   v8::internal::Heap* heap_;
   ProcessEdgesFn process_edges_;
-  TraceFieldFn trace_field_;
-  void* context_;
+  int task_id_;
   void** buffer_ = nullptr;
   size_t cap_ = 0;
   size_t cursor_ = 0;
   i::WeakObjects* weak_objects_ = mmtk::global_weakref_processor->weak_objects();
-  int task_id_;
+  std::function<base::Optional<i::HeapObject>(i::HeapObject)> trace_field_;
 };
 
 

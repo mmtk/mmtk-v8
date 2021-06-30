@@ -136,8 +136,8 @@ static void mmtk_on_move_event(void* from_address, void* to_address, size_t size
 
 static void mmtk_scan_roots(TraceRootFn trace_root, void* context, int task_id) {
   main_thread_synchronizer->RunMainThreadTask([=]() {
-    mmtk::MMTkRootVisitor root_visitor(v8_heap, trace_root, context, task_id);
-    mmtk::MMTkCustomRootBodyVisitor custom_root_body_visitor(v8_heap, trace_root, context, task_id);
+    mmtk::MMTkRootVisitor root_visitor(v8_heap, trace_root, context, kMainThreadTask);
+    mmtk::MMTkCustomRootBodyVisitor custom_root_body_visitor(v8_heap, trace_root, context, kMainThreadTask);
     v8_heap->IterateRoots(&root_visitor, {});
     for (i::StackFrameIterator it(v8_heap->isolate(), v8_heap->isolate()->thread_local_top()); !it.done(); it.Advance()) {
       if (it.frame()->is_unoptimized()) break;
@@ -154,7 +154,7 @@ static void mmtk_scan_roots(TraceRootFn trace_root, void* context, int task_id) 
 }
 
 static void mmtk_scan_objects(void** objects, size_t count, ProcessEdgesFn process_edges, TraceFieldFn trace_field, void* context, int task_id) {
-  mmtk::MMTkEdgeVisitor visitor(v8_heap, process_edges, trace_field,  context, task_id);
+  mmtk::MMTkEdgeVisitor visitor(v8_heap, process_edges, trace_field,  context, task_id + 1);
   for (size_t i = 0; i < count; i++) {
     auto ptr = *(objects + i);
     DCHECK_EQ(((Address) ptr) & 1, 0);

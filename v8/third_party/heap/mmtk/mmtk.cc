@@ -59,7 +59,7 @@ v8::internal::Isolate* Heap::GetIsolate(Address object_pointer) {
 // Address space in Rust is statically from 0x60000000 - 0xb0000000
 AllocationResult Heap::Allocate(size_t size_in_bytes, AllocationType type, AllocationAlignment align) {
   CheckMutator(this);
-  if (!initialization_finished_ && type == AllocationType::kOld) {
+  if (!v8_heap->deserialization_complete() && type == AllocationType::kOld) {
     type = AllocationType::kMap;
   }
   bool large_object = size_in_bytes > kMaxRegularHeapObjectSize;
@@ -70,6 +70,10 @@ AllocationResult Heap::Allocate(size_t size_in_bytes, AllocationType type, Alloc
   tph_archive_insert(mmtk::get_object_archive(this), reinterpret_cast<void*>(result),mmtk::get_isolate(this));
   HeapObject rtn = HeapObject::FromAddress(result);
   return rtn;
+}
+
+bool Heap::IsPendingAllocation(HeapObject object) {
+  return false;
 }
 
 Address Heap::GetObjectFromInnerPointer(Address inner_pointer) {

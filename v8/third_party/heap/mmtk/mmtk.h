@@ -164,6 +164,10 @@ class Impl {
     return TransitionsAccessor(isolate, parent, no_gc).HasSimpleTransitionTo(target);
   }
 
+  V8_INLINE static void FlushNumberStringCache(v8::internal::Heap* heap) {
+    heap->FlushNumberStringCache();
+  }
+
   V8_INLINE static Heap* get_tp_heap(v8::internal::Heap* heap) {
     return heap->tp_heap_.get();
   }

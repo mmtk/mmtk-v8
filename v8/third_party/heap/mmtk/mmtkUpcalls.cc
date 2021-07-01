@@ -11,6 +11,7 @@
 #include "main-thread-sync.h"
 #include "log.h"
 #include "weak-refs.h"
+#include "src/codegen/compilation-cache.h"
 
 namespace v8 {
 namespace internal {
@@ -30,7 +31,8 @@ static void mmtk_stop_all_mutators(void *tls) {
     v8_heap->isolate()->descriptor_lookup_cache()->Clear();
     RegExpResultsCache::Clear(v8_heap->string_split_cache());
     RegExpResultsCache::Clear(v8_heap->regexp_multiple_cache());
-    // v8_heap->FlushNumberStringCache();
+    v8_heap->isolate()->compilation_cache()->MarkCompactPrologue();
+    Impl::FlushNumberStringCache(v8_heap);
     int len = v8_heap->number_string_cache().length();
     for (int i = 0; i < len; i++) {
       v8_heap->number_string_cache().set_undefined(i);

@@ -133,10 +133,21 @@ namespace v8 {
 namespace internal {
 namespace third_party_heap {
 
+namespace i = v8::internal;
+
 class Impl {
  public:
-  V8_INLINE static void ProcessAllWeakReferences(v8::internal::Heap* heap, WeakObjectRetainer* retainer) {
-    heap->ProcessAllWeakReferences(retainer);
+  template <class T>
+  static v8::internal::Object VisitWeakList(v8::internal::Heap* heap, v8::internal::Object list, v8::internal::WeakObjectRetainer* retainer);
+
+  V8_INLINE static void ProcessAllWeakReferences(v8::internal::Heap* heap, v8::internal::WeakObjectRetainer* retainer) {
+    heap->set_native_contexts_list(VisitWeakList<Context>(heap, heap->native_contexts_list(), retainer));
+    heap->set_allocation_sites_list(VisitWeakList<AllocationSite>(heap, heap->allocation_sites_list(), retainer));
+    auto head = VisitWeakList<JSFinalizationRegistry>(heap, heap->dirty_js_finalization_registries_list(), retainer);
+    heap->set_dirty_js_finalization_registries_list(head);
+    if (head.IsUndefined(heap->isolate())) {
+      heap->set_dirty_js_finalization_registries_list_tail(head);
+    }
   }
 
   V8_INLINE static void UpdateExternalStringTable(v8::internal::Heap* heap, RootVisitor* external_visitor) {

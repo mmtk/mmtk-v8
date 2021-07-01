@@ -330,7 +330,7 @@ class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
     // If the descriptors are a Smi, then this Map is in the process of being
     // deserialized, and doesn't yet have an initialized descriptor field.
     if (maybe_descriptors.IsSmi()) {
-      DCHECK_EQ(maybe_descriptors, i::Deserializer::uninitialized_field_value());
+      DCHECK_EQ(maybe_descriptors, i::Smi::uninitialized_deserialization_value());
       return 0;
     }
     auto descriptors = i::DescriptorArray::cast(maybe_descriptors);

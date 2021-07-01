@@ -5,6 +5,7 @@
 #include "src/objects/string-table.h"
 #include "src/objects/visitors.h"
 #include "src/objects/transitions-inl.h"
+#include "src/heap/objects-visiting.h"
 
 namespace v8 {
 namespace internal {
@@ -229,7 +230,7 @@ class WeakRefs {
           auto constructor_or_back_pointer = map.constructor_or_back_pointer();
           if (constructor_or_back_pointer.IsSmi()) {
             DCHECK(isolate()->has_active_deserializer());
-            DCHECK_EQ(constructor_or_back_pointer, i::Deserializer::uninitialized_field_value());
+            DCHECK_EQ(constructor_or_back_pointer, i::Smi::uninitialized_deserialization_value());
             continue;
           }
           auto parent = i::Map::cast(map.constructor_or_back_pointer());
@@ -253,7 +254,7 @@ class WeakRefs {
       if (raw_target.IsSmi()) {
         // This target is still being deserialized,
         DCHECK(isolate()->has_active_deserializer());
-        DCHECK_EQ(raw_target.ToSmi(), i::Deserializer::uninitialized_field_value());
+        DCHECK_EQ(raw_target.ToSmi(), i::Smi::uninitialized_deserialization_value());
         return false;
       } else if (!is_live(tph::Impl::TransitionsAccessor_GetTargetFromRaw(raw_target))) {
         return true;

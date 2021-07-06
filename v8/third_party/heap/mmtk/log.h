@@ -1,7 +1,7 @@
 #ifndef MMTK_LOG_H
 #define MMTK_LOG_H
 
-#define ENABLE_LOGGING 1
+#define ENABLE_LOGGING false
 
 #define MMTK_LOG(...)             \
   if (ENABLE_LOGGING) {           \

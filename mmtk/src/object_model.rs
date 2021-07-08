@@ -1,7 +1,7 @@
 use std::sync::atomic::Ordering;
 
 use super::UPCALLS;
-use mmtk::util::metadata::{header_metadata::HeaderMetadataSpec, MetadataSpec};
+use mmtk::util::metadata::header_metadata::HeaderMetadataSpec;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::*;
 use mmtk::AllocationSemantics;
@@ -10,20 +10,19 @@ use V8;
 
 pub struct VMObjectModel {}
 
-const DUMMY_METADATA: MetadataSpec = MetadataSpec::InHeader(HeaderMetadataSpec {
-    bit_offset: 0,
-    num_of_bits: 0,
-});
-
 impl ObjectModel<V8> for VMObjectModel {
-    const GLOBAL_LOG_BIT_SPEC: MetadataSpec = DUMMY_METADATA;
-    const LOCAL_FORWARDING_POINTER_SPEC: MetadataSpec = DUMMY_METADATA;
-    const LOCAL_FORWARDING_BITS_SPEC: MetadataSpec = DUMMY_METADATA;
-    const LOCAL_MARK_BIT_SPEC: MetadataSpec = DUMMY_METADATA;
-    const LOCAL_LOS_MARK_NURSERY_SPEC: MetadataSpec = DUMMY_METADATA;
+    // FIXME: Use proper specs
+    const GLOBAL_LOG_BIT_SPEC: VMGlobalLogBitSpec = VMGlobalLogBitSpec::in_header(0);
+    const LOCAL_FORWARDING_POINTER_SPEC: VMLocalForwardingPointerSpec =
+        VMLocalForwardingPointerSpec::in_header(0);
+    const LOCAL_FORWARDING_BITS_SPEC: VMLocalForwardingBitsSpec =
+        VMLocalForwardingBitsSpec::in_header(0);
+    const LOCAL_MARK_BIT_SPEC: VMLocalMarkBitSpec = VMLocalMarkBitSpec::in_header(0);
+    const LOCAL_LOS_MARK_NURSERY_SPEC: VMLocalLOSMarkNurserySpec =
+        VMLocalLOSMarkNurserySpec::in_header(0);
 
     fn load_metadata(
-        _metadata_spec: HeaderMetadataSpec,
+        _metadata_spec: &HeaderMetadataSpec,
         _object: ObjectReference,
         _mask: Option<usize>,
         _atomic_ordering: Option<Ordering>,
@@ -32,7 +31,7 @@ impl ObjectModel<V8> for VMObjectModel {
     }
 
     fn store_metadata(
-        _metadata_spec: HeaderMetadataSpec,
+        _metadata_spec: &HeaderMetadataSpec,
         _object: ObjectReference,
         _val: usize,
         _mask: Option<usize>,
@@ -42,7 +41,7 @@ impl ObjectModel<V8> for VMObjectModel {
     }
 
     fn compare_exchange_metadata(
-        _metadata_spec: HeaderMetadataSpec,
+        _metadata_spec: &HeaderMetadataSpec,
         _object: ObjectReference,
         _old_val: usize,
         _new_val: usize,
@@ -54,7 +53,7 @@ impl ObjectModel<V8> for VMObjectModel {
     }
 
     fn fetch_add_metadata(
-        _metadata_spec: HeaderMetadataSpec,
+        _metadata_spec: &HeaderMetadataSpec,
         _object: ObjectReference,
         _val: usize,
         _order: Ordering,
@@ -63,7 +62,7 @@ impl ObjectModel<V8> for VMObjectModel {
     }
 
     fn fetch_sub_metadata(
-        _metadata_spec: HeaderMetadataSpec,
+        _metadata_spec: &HeaderMetadataSpec,
         _object: ObjectReference,
         _val: usize,
         _order: Ordering,

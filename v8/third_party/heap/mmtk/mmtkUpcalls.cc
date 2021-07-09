@@ -25,8 +25,6 @@ static void mmtk_stop_all_mutators(void *tls) {
   MMTK_LOG("[mmtk_stop_all_mutators] START\n");
   main_thread_synchronizer->RunMainThreadTask([=]() {
     main_thread_synchronizer->EnterSafepoint(v8_heap);
-    MMTK_LOG("[mmtk_stop_all_mutators] Verify heap\n");
-    mmtk::MMTkHeapVerifier::Verify(v8_heap);
     MMTK_LOG("[mmtk_stop_all_mutators] Flush cache\n");
     v8_heap->isolate()->descriptor_lookup_cache()->Clear();
     RegExpResultsCache::Clear(v8_heap->string_split_cache());

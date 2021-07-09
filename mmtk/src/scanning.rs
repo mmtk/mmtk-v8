@@ -88,7 +88,6 @@ pub struct ProcessEphemerons<E: ProcessEdgesWork<VM = V8>>(PhantomData<E>);
 impl<E: ProcessEdgesWork<VM = V8>> ProcessEphemerons<E> {
     pub fn new() -> Self {
         unreachable!();
-        Self(PhantomData)
     }
 }
 

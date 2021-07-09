@@ -3,6 +3,7 @@ use libc::c_void;
 use mmtk::memory_manager;
 use mmtk::scheduler::GCWorker;
 use mmtk::util::opaque_pointer::*;
+use mmtk::util::options::PlanSelector;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::AllocationSemantics;
 use mmtk::Mutator;
@@ -92,6 +93,15 @@ pub extern "C" fn alloc(
 ) -> Address {
     let a = memory_manager::alloc::<V8>(mutator, size, align, offset, semantics);
     unsafe { memory_manager::post_alloc::<V8>(mutator, a.to_object_reference(), size, semantics); }
+    if PlanSelector::PageProtect == mutator.plan.options().plan && AllocationSemantics::Default == semantics {
+        // Possible `array_header_size` values that can be passed to [AllocateUninitializedJSArrayWithElements](https://source.chromium.org/chromium/chromium/src/+/main:v8/src/codegen/code-stub-assembler.h;l=1884).
+        let array_header_sizes = [0x20, 0x50, 0x58];
+        for array_header_size in array_header_sizes {
+            unsafe {
+                memory_manager::post_alloc::<V8>(mutator, a.add(array_header_size).to_object_reference(), 0, semantics);
+            }
+        }
+    }
     a
 }
 

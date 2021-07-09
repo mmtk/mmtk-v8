@@ -1,7 +1,7 @@
 use std::sync::atomic::Ordering;
 
 use super::UPCALLS;
-use mmtk::util::constants::{LOG_BITS_IN_WORD, LOG_BYTES_IN_PAGE, LOG_BYTES_IN_WORD};
+use mmtk::util::constants::{LOG_BITS_IN_WORD, LOG_BYTES_IN_WORD};
 use mmtk::util::metadata::side_metadata::{GLOBAL_SIDE_METADATA_VM_BASE_ADDRESS, LOCAL_SIDE_METADATA_VM_BASE_ADDRESS, SideMetadataSpec};
 use mmtk::util::metadata::{header_metadata::HeaderMetadataSpec, MetadataSpec};
 use mmtk::util::{Address, ObjectReference};
@@ -39,7 +39,7 @@ impl ObjectModel<V8> for VMObjectModel {
         is_global: false,
         offset: Self::LOCAL_MARK_BIT_SPEC.as_side().unwrap().accumulated_size(),
         log_num_of_bits: 1,
-        log_min_obj_size: LOG_BYTES_IN_PAGE as usize,
+        log_min_obj_size: LOG_BYTES_IN_WORD as usize,
     });
 
     fn load_metadata(

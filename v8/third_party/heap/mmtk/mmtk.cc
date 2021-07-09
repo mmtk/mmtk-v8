@@ -150,6 +150,10 @@ void Heap::ClearRecordedSlot(HeapObject object, ObjectSlot slot) {}
 
 void Heap::ClearRecordedSlotRange(Address start, Address end) {}
 
+void Heap::WriteBarrier(Address object, Address slot, Address value) {}
+
+void Heap::WriteBarrierForCode(Code host, RelocInfo* rinfo, HeapObject object) {}
+
 }
 }  // namespace internal
 }  // namespace v8

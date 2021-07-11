@@ -13,58 +13,35 @@ use V8;
 pub struct VMObjectModel {}
 
 impl ObjectModel<V8> for VMObjectModel {
-    const GLOBAL_LOG_BIT_SPEC: MetadataSpec = MetadataSpec::OnSide(SideMetadataSpec {
-        is_global: true,
-        offset: GLOBAL_SIDE_METADATA_VM_BASE_ADDRESS.as_usize(),
-        log_num_of_bits: 0,
-        log_min_obj_size: LOG_BYTES_IN_WORD as usize,
-    });
-    const LOCAL_FORWARDING_POINTER_SPEC: MetadataSpec = MetadataSpec::InHeader(HeaderMetadataSpec {
-        bit_offset: 0,
-        num_of_bits: LOG_BITS_IN_WORD,
-    });
-    const LOCAL_FORWARDING_BITS_SPEC: MetadataSpec = MetadataSpec::OnSide(SideMetadataSpec {
-        is_global: false,
-        offset: LOCAL_SIDE_METADATA_VM_BASE_ADDRESS.as_usize(),
-        log_num_of_bits: 1,
-        log_min_obj_size: LOG_BYTES_IN_WORD as usize,
-    });
-    const LOCAL_MARK_BIT_SPEC: MetadataSpec = MetadataSpec::OnSide(SideMetadataSpec {
-        is_global: false,
-        offset: Self::LOCAL_FORWARDING_BITS_SPEC.as_side().unwrap().accumulated_size(),
-        log_num_of_bits: 0,
-        log_min_obj_size: LOG_BYTES_IN_WORD as usize,
-    });
-    const LOCAL_LOS_MARK_NURSERY_SPEC: MetadataSpec = MetadataSpec::OnSide(SideMetadataSpec {
-        is_global: false,
-        offset: Self::LOCAL_MARK_BIT_SPEC.as_side().unwrap().accumulated_size(),
-        log_num_of_bits: 1,
-        log_min_obj_size: LOG_BYTES_IN_WORD as usize,
-    });
+    const GLOBAL_LOG_BIT_SPEC: VMGlobalLogBitSpec = VMGlobalLogBitSpec::side(GLOBAL_SIDE_METADATA_VM_BASE_ADDRESS.as_usize());
+    const LOCAL_FORWARDING_POINTER_SPEC: VMLocalForwardingPointerSpec = VMLocalForwardingPointerSpec::in_header(0);
+    const LOCAL_FORWARDING_BITS_SPEC: VMLocalForwardingBitsSpec = VMLocalForwardingBitsSpec::side(LOCAL_SIDE_METADATA_VM_BASE_ADDRESS.as_usize());
+    const LOCAL_MARK_BIT_SPEC: VMLocalMarkBitSpec = VMLocalMarkBitSpec::side(Self::LOCAL_FORWARDING_BITS_SPEC.spec().as_side().unwrap().accumulated_size());
+    const LOCAL_LOS_MARK_NURSERY_SPEC: VMLocalLOSMarkNurserySpec = VMLocalLOSMarkNurserySpec::side(Self::LOCAL_MARK_BIT_SPEC.spec().as_side().unwrap().accumulated_size());
 
     fn load_metadata(
-        metadata_spec: HeaderMetadataSpec,
+        metadata_spec: &HeaderMetadataSpec,
         object: ObjectReference,
         _mask: Option<usize>,
         _atomic_ordering: Option<Ordering>,
     ) -> usize {
-        debug_assert_eq!(metadata_spec, Self::LOCAL_FORWARDING_POINTER_SPEC.as_header().unwrap());
+        debug_assert_eq!(metadata_spec, &Self::LOCAL_FORWARDING_POINTER_SPEC.as_header().unwrap());
         unsafe { object.to_address().load() }
     }
 
     fn store_metadata(
-        metadata_spec: HeaderMetadataSpec,
+        metadata_spec: &HeaderMetadataSpec,
         object: ObjectReference,
         val: usize,
         _mask: Option<usize>,
         _atomic_ordering: Option<Ordering>,
     ) {
-        debug_assert_eq!(metadata_spec, Self::LOCAL_FORWARDING_POINTER_SPEC.as_header().unwrap());
+        debug_assert_eq!(metadata_spec, &Self::LOCAL_FORWARDING_POINTER_SPEC.as_header().unwrap());
         unsafe { object.to_address().store(val) }
     }
 
     fn compare_exchange_metadata(
-        _metadata_spec: HeaderMetadataSpec,
+        _metadata_spec: &HeaderMetadataSpec,
         _object: ObjectReference,
         _old_val: usize,
         _new_val: usize,
@@ -76,7 +53,7 @@ impl ObjectModel<V8> for VMObjectModel {
     }
 
     fn fetch_add_metadata(
-        _metadata_spec: HeaderMetadataSpec,
+        _metadata_spec: &HeaderMetadataSpec,
         _object: ObjectReference,
         _val: usize,
         _order: Ordering,
@@ -85,7 +62,7 @@ impl ObjectModel<V8> for VMObjectModel {
     }
 
     fn fetch_sub_metadata(
-        _metadata_spec: HeaderMetadataSpec,
+        _metadata_spec: &HeaderMetadataSpec,
         _object: ObjectReference,
         _val: usize,
         _order: Ordering,

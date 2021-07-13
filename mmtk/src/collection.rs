@@ -57,7 +57,7 @@ impl Collection<V8> for VMCollection {
         unimplemented!()
     }
 
-    fn update_object_archive() {
+    fn vm_release() {
         global_object_archive().update();
     }
 

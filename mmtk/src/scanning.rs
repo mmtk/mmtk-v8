@@ -58,7 +58,7 @@ impl Scanning<V8> for VMScanning {
 
     fn scan_vm_specific_roots<W: ProcessEdgesWork<VM = V8>>(worker: &mut GCWorker<V8>) {
         let x = worker as *mut GCWorker<V8> as usize;
-        SINGLETON.scheduler.on_closure_end(Box::new(move || {
+        mmtk::memory_manager::on_closure_end(&SINGLETON, Box::new(move || {
             unsafe {
                 let w = x as *mut GCWorker<V8>;
                 debug_assert!(ROOT_OBJECTS.is_empty());
@@ -132,7 +132,24 @@ pub(crate) fn flush_roots<W: ProcessEdgesWork<VM = V8>>(_worker: &mut GCWorker<V
     unsafe { ROOT_FLUSHED = true; }
     let mut buf = vec![];
     unsafe { std::mem::swap(&mut buf, &mut ROOT_OBJECTS); }
-    let scan_objects_work = mmtk::scheduler::gc_work::ScanObjects::<W>::new(buf, false);
+    pub struct ScanRootObjects<Edges: ProcessEdgesWork> {
+        buffer: Vec<ObjectReference>,
+        phantom: PhantomData<Edges>,
+    }
+    impl<Edges: ProcessEdgesWork> ScanRootObjects<Edges> {
+        pub fn new(buffer: Vec<ObjectReference>) -> Self {
+            Self {
+                buffer,
+                phantom: PhantomData,
+            }
+        }
+    }
+    impl<E: ProcessEdgesWork> GCWork<E::VM> for ScanRootObjects<E> {
+        fn do_work(&mut self, worker: &mut GCWorker<E::VM>, _mmtk: &'static MMTK<E::VM>) {
+            <E::VM as VMBinding>::VMScanning::scan_objects::<E>(&self.buffer, worker);
+        }
+    }
+    let scan_objects_work = ScanRootObjects::<W>::new(buf);
     mmtk::memory_manager::add_work_packet(
         &SINGLETON,
         WorkBucketStage::Closure,

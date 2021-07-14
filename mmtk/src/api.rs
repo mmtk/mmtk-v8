@@ -67,7 +67,14 @@ pub extern "C" fn bind_mutator(
 #[no_mangle]
 pub unsafe extern "C" fn mmtk_in_space(mmtk: &'static MMTK<V8>, object: ObjectReference, space: AllocationSemantics) -> i32 {
     match space {
-        AllocationSemantics::Default => mmtk.plan.in_default_space(object) as _,
+        AllocationSemantics::Default => {
+            (object.is_mapped()
+                && mmtk_in_space(mmtk, object, AllocationSemantics::ReadOnly) == 0
+                && mmtk_in_space(mmtk, object, AllocationSemantics::Immortal) == 0
+                && mmtk_in_space(mmtk, object, AllocationSemantics::Los) == 0
+                && mmtk_in_space(mmtk, object, AllocationSemantics::Code) == 0
+                && mmtk_in_space(mmtk, object, AllocationSemantics::LargeCode) == 0) as _
+        },
         AllocationSemantics::ReadOnly => mmtk.plan.base().ro_space.in_space(object) as _,
         AllocationSemantics::Immortal => mmtk.plan.common().immortal.in_space(object) as _,
         AllocationSemantics::Los => mmtk.plan.common().los.in_space(object) as _,

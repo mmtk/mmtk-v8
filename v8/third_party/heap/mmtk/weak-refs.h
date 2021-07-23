@@ -7,6 +7,14 @@
 #include "src/objects/transitions-inl.h"
 #include "src/heap/objects-visiting.h"
 
+#define WEAKREF_PROCESSING
+
+#ifdef WEAKREF_PROCESSING
+#define WEAKREF_PROCESSING_BOOL true
+#else
+#define WEAKREF_PROCESSING_BOOL false
+#endif
+
 namespace v8 {
 namespace internal {
 namespace third_party_heap {
@@ -22,19 +30,13 @@ namespace mmtk {
 class MMTkWeakObjectRetainer: public i::WeakObjectRetainer {
  public:
   virtual i::Object RetainAs(i::Object object) override final {
-    // LOG("RetainAs %p\n", (void*) object.ptr());
     if (object == i::Object()) return object;
     auto heap_object = i::HeapObject::cast(object);
     if (is_live(heap_object)) {
       auto f = mmtk_get_forwarded_object(heap_object);
-      if (f != nullptr) {
-        // LOG("%p -> %p\n", (void*) object.ptr(), (void*) f);
-        return i::Object((i::Address) f);
-      }
-      // LOG("%p is dead 1 \n", (void*) object.ptr());
+      if (f != nullptr) return i::Object((i::Address) f);
       return object;
     } else {
-      // LOG("%p is dead 2 \n", (void*) object.ptr());
       return i::Object();
     }
   }
@@ -131,18 +133,7 @@ class WeakRefs {
 
     // Replace bytecode array with an uncompiled data array.
     auto compiled_data = shared_info.GetBytecodeArray(isolate());
-    // auto compiled_data_start = compiled_data.address();
     int compiled_data_size = compiled_data.Size();
-    // auto chunk = MemoryChunk::FromAddress(compiled_data_start);
-
-    // Clear any recorded slots for the compiled data as being invalid.
-    // DCHECK_NULL(chunk->sweeping_slot_set());
-    // RememberedSet<OLD_TO_NEW>::RemoveRange(
-    //     chunk, compiled_data_start, compiled_data_start + compiled_data_size,
-    //     SlotSet::FREE_EMPTY_BUCKETS);
-    // RememberedSet<OLD_TO_OLD>::RemoveRange(
-    //     chunk, compiled_data_start, compiled_data_start + compiled_data_size,
-    //     SlotSet::FREE_EMPTY_BUCKETS);
 
     // Swap the map, using set_map_after_allocation to avoid verify heap checks
     // which are not necessary since we are doing this during the GC atomic pause.
@@ -169,11 +160,8 @@ class WeakRefs {
     // Mark the uncompiled data as black, and ensure all fields have already been
     // marked.
     DCHECK(is_live(inferred_name));
-    // DCHECK(is_live(uncompiled_data));
 
     trace_((void*) &uncompiled_data);
-    // auto forwarded = trace_((void*) &uncompiled_data);
-    // if (forwarded) uncompiled_data = i::UncompiledData::cast(*forwarded);
 
     // Use the raw function data setter to avoid validity checks, since we're
     // performing the unusual task of decompiling.
@@ -198,11 +186,6 @@ class WeakRefs {
       } else {
         DCHECK(!get_forwarded_ref(flushing_candidate.GetBytecodeArray(heap()->isolate())));
       }
-      // Now record the slot, which has either been updated to an uncompiled data,
-      // or is the BytecodeArray which is still alive.
-      // auto slot =
-      //     flushing_candidate.RawField(SharedFunctionInfo::kFunctionDataOffset);
-      // RecordSlot(flushing_candidate, slot, HeapObject::cast(*slot));
     }
   }
 
@@ -288,13 +271,8 @@ class WeakRefs {
         if (i != transition_index) {
           i::Name key = transitions.GetKey(i);
           transitions.SetKey(transition_index, key);
-          // i::HeapObjectSlot key_slot = transitions.GetKeySlot(transition_index);
-          // RecordSlot(transitions, key_slot, key);
           i::MaybeObject raw_target = transitions.GetRawTarget(i);
           transitions.SetRawTarget(transition_index, raw_target);
-          // i::HeapObjectSlot target_slot =
-          //     transitions.GetTargetSlot(transition_index);
-          // RecordSlot(transitions, target_slot, raw_target->GetHeapObject());
         }
         transition_index++;
       }
@@ -323,12 +301,6 @@ class WeakRefs {
     DCHECK_LE(0, new_nof_all_descriptors);
     auto start = array.GetDescriptorSlot(new_nof_all_descriptors).address();
     auto end = array.GetDescriptorSlot(old_nof_all_descriptors).address();
-    // MemoryChunk* chunk = MemoryChunk::FromHeapObject(array);
-    // DCHECK_NULL(chunk->sweeping_slot_set());
-    // RememberedSet<OLD_TO_NEW>::RemoveRange(chunk, start, end,
-    //                                        SlotSet::FREE_EMPTY_BUCKETS);
-    // RememberedSet<OLD_TO_OLD>::RemoveRange(chunk, start, end,
-    //                                        SlotSet::FREE_EMPTY_BUCKETS);
     heap()->CreateFillerObjectAt(start, static_cast<int>(end - start), i::ClearRecordedSlots::kNo);
     array.set_number_of_all_descriptors(new_nof_all_descriptors);
   }
@@ -421,27 +393,7 @@ class WeakRefs {
           }
           location.store(cleared_weak_ref);
         }
-      } /*else if ((*location)->GetHeapObjectIfStrong(&value)) {
-        DCHECK(!value.IsCell());
-        if (is_live(value)) {
-          // The value of the weak reference is alive.
-          // RecordSlot(slot.first, HeapObjectSlot(location), value);
-          auto forwarded = get_forwarded_ref(value);
-          if (forwarded) {
-            printf("[WeakRef] Strong %p -> %p\n", (void*) value.ptr(), (void*) forwarded->ptr());
-            location.store(to_weakref(*forwarded));
-          } else {
-            printf("[WeakRef] Strong %p <unmoved>\n", (void*) value.ptr());
-          }
-        } else {
-          printf("[WeakRef] Strong Dead %p\n", (void*) value.ptr());
-          if (value.IsMap()) {
-            // The map is non-live.
-            ClearPotentialSimpleMapTransition(i::Map::cast(value));
-          }
-          location.store(cleared_weak_ref);
-        }
-      }*/
+      }
     }
   }
 
@@ -488,9 +440,6 @@ class WeakRefs {
       } else {
         auto forwarded = get_forwarded_ref(weak_ref.target());
         if (forwarded) weak_ref.set_target(*forwarded);
-        // The value of the JSWeakRef is alive.
-        // i::ObjectSlot slot = weak_ref.RawField(JSWeakRef::kTargetOffset);
-        // RecordSlot(weak_ref, slot, target);
       }
     }
     i::WeakCell weak_cell;
@@ -521,9 +470,6 @@ class WeakRefs {
         if (auto f = get_forwarded_ref(target)) {
           slot.store(*f);
         }
-        // The value of the WeakCell is alive.
-        // i::ObjectSlot slot = weak_cell.RawField(WeakCell::kTargetOffset);
-        // RecordSlot(weak_cell, slot, HeapObject::cast(*slot));
       }
 
       i::ObjectSlot slot = weak_cell.RawField(i::WeakCell::kUnregisterTokenOffset);
@@ -546,9 +492,6 @@ class WeakRefs {
         if (auto f = get_forwarded_ref(unregister_token)) {
           slot.store(*f);
         }
-        // The unregister_token is alive.
-        // ObjectSlot slot = weak_cell.RawField(WeakCell::kUnregisterTokenOffset);
-        // RecordSlot(weak_cell, slot, HeapObject::cast(*slot));
       }
     }
     heap()->PostFinalizationRegistryCleanupTaskIfNeeded();
@@ -615,9 +558,9 @@ class WeakRefs {
   void ProcessEphemerons() {
     Flush();
 
-    class XRootVisitor: public i::RootVisitor {
+    class InternalRootVisitor: public i::RootVisitor {
      public:
-      explicit XRootVisitor(std::function<void(void*)>& trace): trace_(trace) {}
+      explicit InternalRootVisitor(std::function<void(void*)>& trace): trace_(trace) {}
 
       virtual void VisitRootPointer(i::Root root, const char* description, i::FullObjectSlot p) override final {
         ProcessRootEdge(root, p);
@@ -639,7 +582,7 @@ class WeakRefs {
     };
 
     {
-      XRootVisitor root_visitor(trace_);
+      InternalRootVisitor root_visitor(trace_);
       isolate()->global_handles()->IterateWeakRootsForFinalizers(&root_visitor);
       // isolate()->global_handles()->IterateWeakRootsForPhantomHandles(&root_visitor);
     }

@@ -16,14 +16,6 @@
 #include "weak-refs.h"
 #include <unordered_set>
 
-#define WEAKREF_PROCESSING
-
-#ifdef WEAKREF_PROCESSING
-#define WEAKREF_PROCESSING_BOOL true
-#else
-#define WEAKREF_PROCESSING_BOOL false
-#endif
-
 namespace mmtk {
 
 namespace i = v8::internal;
@@ -137,23 +129,14 @@ class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
     }
   }
 
-  // V8_INLINE bool AllowDefaultJSObjectVisit() { return false; }
-
 #ifdef WEAKREF_PROCESSING
   void VisitEphemeronHashTable(i::Map map, i::EphemeronHashTable table) {
-    // if (!concrete_visitor()->ShouldVisit(table)) return 0;
     weak_objects_->ephemeron_hash_tables.Push(task_id_, table);
 
     for (auto i : table.IterateEntries()) {
       auto key_slot = table.RawFieldOfElementAt(i::EphemeronHashTable::EntryToIndex(i));
       auto key = i::HeapObject::cast(table.KeyAt(i));
-
-      // VisitPointer(table, key_slot);
-      // concrete_visitor()->SynchronizePageAccess(key);
-      // concrete_visitor()->RecordSlot(table, key_slot, key);
-
       auto value_slot = table.RawFieldOfElementAt(i::EphemeronHashTable::EntryToValueIndex(i));
-
       if (is_live(key)) {
         if (auto f = get_forwarded_ref(key)) {
           key_slot.store(*f);
@@ -163,62 +146,28 @@ class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
         auto value_obj = table.ValueAt(i);
         if (value_obj.IsHeapObject()) {
           auto value = i::HeapObject::cast(value_obj);
-      //     concrete_visitor()->SynchronizePageAccess(value);
-      //     concrete_visitor()->RecordSlot(table, value_slot, value);
-
-      //     // Revisit ephemerons with both key and value unreachable at end
-      //     // of concurrent marking cycle.
-      //     if (concrete_visitor()->marking_state()->IsWhite(value)) {
           weak_objects_->discovered_ephemerons.Push(task_id_, i::Ephemeron{key, value});
-      //     }
         }
       }
     }
-    // return table.SizeFromMap(map);
   }
 
   V8_INLINE void VisitWeakCell(i::Map map, i::WeakCell weak_cell) {
-    // if (!ShouldVisit(weak_cell)) return;
-
     int size = i::WeakCell::BodyDescriptor::SizeOf(map, weak_cell);
     this->VisitMapPointer(weak_cell);
     i::WeakCell::BodyDescriptor::IterateBody(map, weak_cell, size, this);
-    // i::HeapObject target = weak_cell.relaxed_target();
-    // i::HeapObject unregister_token = weak_cell.relaxed_unregister_token();
-    // concrete_visitor()->SynchronizePageAccess(target);
-    // concrete_visitor()->SynchronizePageAccess(unregister_token);
-    // if (concrete_visitor()->marking_state()->IsBlackOrGrey(target) &&
-    //     concrete_visitor()->marking_state()->IsBlackOrGrey(unregister_token)) {
-    //   // Record the slots inside the WeakCell, since the IterateBody above
-    //   // didn't visit it.
-    //   ObjectSlot slot = weak_cell.RawField(WeakCell::kTargetOffset);
-    //   concrete_visitor()->RecordSlot(weak_cell, slot, target);
-    //   slot = weak_cell.RawField(WeakCell::kUnregisterTokenOffset);
-    //   concrete_visitor()->RecordSlot(weak_cell, slot, unregister_token);
-    // } else {
-      // WeakCell points to a potentially dead object or a dead unregister
-      // token. We have to process them when we know the liveness of the whole
-      // transitive closure.
-      weak_objects_->weak_cells.Push(task_id_, weak_cell);
-    // }
+    // WeakCell points to a potentially dead object or a dead unregister
+    // token. We have to process them when we know the liveness of the whole
+    // transitive closure.
+    weak_objects_->weak_cells.Push(task_id_, weak_cell);
   }
 
   V8_INLINE void VisitJSWeakRef(i::Map map, i::JSWeakRef weak_ref) {
     VisitJSObjectSubclass(map, weak_ref);
-    // if (size == 0) return 0;
     if (weak_ref.target().IsHeapObject()) {
-      // i::HeapObject target = i::HeapObject::cast(weak_ref.target());
-      // SynchronizePageAccess(target);
-      // if (concrete_visitor()->marking_state()->IsBlackOrGrey(target)) {
-      //   // Record the slot inside the JSWeakRef, since the
-      //   // VisitJSObjectSubclass above didn't visit it.
-      //   ObjectSlot slot = weak_ref.RawField(JSWeakRef::kTargetOffset);
-      //   concrete_visitor()->RecordSlot(weak_ref, slot, target);
-      // } else {
-        // JSWeakRef points to a potentially dead object. We have to process
-        // them when we know the liveness of the whole transitive closure.
-        weak_objects_->js_weak_refs.Push(task_id_, weak_ref);
-      // }
+      // JSWeakRef points to a potentially dead object. We have to process
+      // them when we know the liveness of the whole transitive closure.
+      weak_objects_->js_weak_refs.Push(task_id_, weak_ref);
     }
   }
 
@@ -227,9 +176,7 @@ class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
     int size = i::BytecodeArray::BodyDescriptor::SizeOf(map, object);
     this->VisitMapPointer(object);
     i::BytecodeArray::BodyDescriptor::IterateBody(map, object, size, this);
-    // if (!is_forced_gc_) {
-      object.MakeOlder();
-    // }
+    object.MakeOlder();
   }
 
   V8_INLINE void VisitJSFunction(i::Map map, i::JSFunction object) {
@@ -242,7 +189,6 @@ class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
   }
 
   V8_INLINE void VisitSharedFunctionInfo(i::Map map, i::SharedFunctionInfo shared_info) {
-    // if (!ShouldVisit(shared_info)) return;
     int size = i::SharedFunctionInfo::BodyDescriptor::SizeOf(map, shared_info);
     VisitMapPointer(shared_info);
     i::SharedFunctionInfo::BodyDescriptor::IterateBody(map, shared_info, size, this);
@@ -252,8 +198,6 @@ class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
       if (auto f = mmtk::get_forwarded_ref(i::HeapObject::cast(data))) {
         shared_info.set_function_data(*f, v8::kReleaseStore);
       }
-      // trace_field_((void*) &data, context_);
-      // shared_info.set_function_data(data, v8::kReleaseStore);
     }
 
     // If the SharedFunctionInfo has old bytecode, mark it as flushable,
@@ -267,14 +211,12 @@ class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
 
   template <typename T>
   void VisitJSObjectSubclass(i::Map map, T object) {
-    // if (!ShouldVisit(object)) return;
     VisitMapPointer(object);
     int size = T::BodyDescriptor::SizeOf(map, object);
     T::BodyDescriptor::IterateBody(map, object, size, this);
   }
 
   V8_INLINE void VisitTransitionArray(i::Map map, i::TransitionArray array) {
-    // if (!ShouldVisit(array)) return;
     VisitMapPointer(array);
     int size = i::TransitionArray::BodyDescriptor::SizeOf(map, array);
     i::TransitionArray::BodyDescriptor::IterateBody(map, array, size, this);
@@ -297,6 +239,7 @@ class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
 
   void VisitDescriptors(i::DescriptorArray descriptor_array, int number_of_own_descriptors) {
     int16_t new_marked = static_cast<int16_t>(number_of_own_descriptors);
+    // Note: Always trace all the element in descriptor_arrays.
     // int16_t old_marked = descriptor_array.UpdateNumberOfMarkedDescriptors(
     //     heap_->gc_count(), new_marked);
     // if (old_marked < new_marked) {
@@ -403,9 +346,6 @@ class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
     } else if (TSlot::kCanBeWeak && (*slot).GetHeapObjectIfWeak(&object)) {
       if (!WEAKREF_PROCESSING_BOOL) {
         PushEdge((void*) slot.address());
-      // } else if (auto f = mmtk::get_forwarded_ref(object)) {
-      //   i::HeapObjectSlot s = i::HeapObjectSlot(slot.address());
-      //   s.StoreHeapObject(*f);
       } else {
         i::HeapObjectSlot s = i::HeapObjectSlot(slot.address());
         weak_objects_->weak_references.Push(task_id_, std::make_pair(host, s));

@@ -193,6 +193,6 @@ V8_Upcalls mmtk_upcalls = {
   mmtk_on_move_event,
   mmtk_process_ephemerons,
 };
-}   // namespace third_party_heap
+}  // namespace third_party_heap
 }  // namespace internal
 }  // namespace v8

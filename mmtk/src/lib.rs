@@ -79,6 +79,8 @@ impl VMBinding for V8 {
 
 lazy_static! {
     pub static ref SINGLETON: MMTK<V8> = {
+        // V8 can only support up to 8 worker threads.
+        // Set MMTK_THREADS = 7 here to exclude the main thread -- it undertakes part of the worker's job.
         if let Ok(threads) = env::var("MMTK_THREADS").map(|x| x.parse::<usize>().unwrap()) {
             if threads > 7 {
                 env::set_var("MMTK_THREADS", "7");

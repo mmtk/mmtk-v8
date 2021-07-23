@@ -1,7 +1,6 @@
 use std::sync::atomic::Ordering;
-
+use std::ptr;
 use super::UPCALLS;
-use mmtk::util::metadata::MetadataSpec;
 use mmtk::util::metadata::{header_metadata::HeaderMetadataSpec};
 use mmtk::util::{Address, ObjectReference, metadata};
 use mmtk::vm::*;
@@ -25,7 +24,6 @@ impl ObjectModel<V8> for VMObjectModel {
         atomic_ordering: Option<Ordering>,
     ) -> usize {
         metadata::header_metadata::load_metadata(metadata_spec, object, optional_mask, atomic_ordering)
-        // unsafe { object.to_address().load() }
     }
 
     fn store_metadata(
@@ -83,10 +81,8 @@ impl ObjectModel<V8> for VMObjectModel {
         let bytes = unsafe { ((*UPCALLS).get_object_size)(from) };
         let dst = copy_context.alloc_copy(from, bytes, ::std::mem::size_of::<usize>(), 0, allocator);
         // Copy
-        // println!("Copy {:?} -> {:?}", from, dst);
-        let src = from.to_address();
-        for i in 0..bytes {
-            unsafe { (dst + i).store((src + i).load::<u8>()) };
+        unsafe {
+            ptr::copy_nonoverlapping::<u8>(from.to_address().to_ptr(), dst.to_mut_ptr(), bytes);
         }
         let to_obj = unsafe { dst.to_object_reference() };
         copy_context.post_copy(to_obj, unsafe { Address::zero() }, bytes, allocator);

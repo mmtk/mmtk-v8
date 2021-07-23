@@ -83,27 +83,6 @@ impl Scanning<V8> for VMScanning {
     }
 }
 
-pub struct ProcessEphemerons<E: ProcessEdgesWork<VM = V8>>(PhantomData<E>);
-
-impl<E: ProcessEdgesWork<VM = V8>> ProcessEphemerons<E> {
-    pub fn new() -> Self {
-        unreachable!();
-    }
-}
-
-impl<E: ProcessEdgesWork<VM = V8>> GCWork<V8> for ProcessEphemerons<E> {
-    fn do_work(&mut self, worker: &mut GCWorker<V8>, _mmtk: &'static MMTK<V8>) {
-        unsafe {
-            debug_assert!(ROOT_OBJECTS.is_empty());
-            ((*UPCALLS).process_ephemerons)(trace_root::<E> as _, worker as *mut _ as _, worker.ordinal);
-            if !ROOT_OBJECTS.is_empty() {
-                flush_roots::<E>(worker);
-            }
-            debug_assert!(ROOT_OBJECTS.is_empty());
-        }
-    }
-}
-
 pub struct ScanAndForwardRoots<E: ProcessEdgesWork<VM = V8>>(PhantomData<E>);
 
 impl<E: ProcessEdgesWork<VM = V8>> ScanAndForwardRoots<E> {
@@ -125,6 +104,7 @@ impl<E: ProcessEdgesWork<VM = V8>> GCWork<V8> for ScanAndForwardRoots<E> {
     }
 }
 
+/// No locks since we always use single-threaded root scanning.
 pub(crate) static mut ROOT_OBJECTS: Vec<ObjectReference> = Vec::new();
 pub(crate) static mut ROOT_FLUSHED: bool = false;
 

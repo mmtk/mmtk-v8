@@ -558,36 +558,6 @@ class WeakRefs {
   void ProcessEphemerons() {
     Flush();
 
-    class InternalRootVisitor: public i::RootVisitor {
-     public:
-      explicit InternalRootVisitor(std::function<void(void*)>& trace): trace_(trace) {}
-
-      virtual void VisitRootPointer(i::Root root, const char* description, i::FullObjectSlot p) override final {
-        ProcessRootEdge(root, p);
-      }
-      virtual void VisitRootPointers(i::Root root, const char* description, i::FullObjectSlot start, i::FullObjectSlot end) override final {
-        for (auto p = start; p < end; ++p) ProcessRootEdge(root, p);
-      }
-      virtual void VisitRootPointers(i::Root root, const char* description, i::OffHeapObjectSlot start, i::OffHeapObjectSlot end) override final {
-        for (auto p = start; p < end; ++p) ProcessRootEdge(root, p);
-      }
-     private:
-      V8_INLINE void ProcessRootEdge(i::Root root, i::FullObjectSlot slot) {
-        i::HeapObject object;
-        if ((*slot).GetHeapObject(&object)) {
-          trace_((void*) slot.address());
-        }
-      }
-      std::function<void(void*)>& trace_;
-    };
-
-    {
-      InternalRootVisitor root_visitor(trace_);
-      isolate()->global_handles()->IterateWeakRootsForFinalizers(&root_visitor);
-      // isolate()->global_handles()->IterateWeakRootsForPhantomHandles(&root_visitor);
-    }
-
-
     i::Ephemeron ephemeron;
 
     DCHECK(weak_objects_.current_ephemerons.IsEmpty());
@@ -616,8 +586,6 @@ class WeakRefs {
     Flush();
     have_code_to_deoptimize_ = false;
     {
-      // TRACE_GC(heap()->tracer(), GCTracer::Scope::MC_CLEAR_STRING_TABLE);
-
       // Prune the string table removing all strings only pointed to by the
       // string table.  Cannot use string_table() here because the string
       // table is marked.

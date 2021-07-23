@@ -1,6 +1,7 @@
 use std::sync::atomic::Ordering;
 
 use super::UPCALLS;
+use mmtk::util::metadata::MetadataSpec;
 use mmtk::util::metadata::{header_metadata::HeaderMetadataSpec};
 use mmtk::util::{Address, ObjectReference, metadata};
 use mmtk::vm::*;
@@ -24,16 +25,23 @@ impl ObjectModel<V8> for VMObjectModel {
         atomic_ordering: Option<Ordering>,
     ) -> usize {
         metadata::header_metadata::load_metadata(metadata_spec, object, optional_mask, atomic_ordering)
+        // unsafe { object.to_address().load() }
     }
 
     fn store_metadata(
         metadata_spec: &HeaderMetadataSpec,
         object: ObjectReference,
         val: usize,
-        optional_mask: Option<usize>,
+        _optional_mask: Option<usize>,
         atomic_ordering: Option<Ordering>,
     ) {
-        metadata::header_metadata::store_metadata(metadata_spec, object, val, optional_mask, atomic_ordering)
+        metadata::header_metadata::store_metadata(
+            metadata_spec,
+            object,
+            val,
+            None,
+            atomic_ordering,
+        );
     }
 
     fn compare_exchange_metadata(

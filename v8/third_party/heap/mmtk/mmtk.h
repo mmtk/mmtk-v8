@@ -71,7 +71,7 @@ extern void*    tph_archive_iter_next(void* arch);
 extern void*    tph_archive_inner_to_obj(void* arch, void* inner_ptr);
 extern int mmtk_in_space(void* mmtk, void* object, size_t space);
 
-extern void release_buffer(void** buffer, size_t len, size_t cap);
+extern void mmtk_release_buffer(void** buffer, size_t len, size_t cap);
 
 typedef struct {
   void** buf;

@@ -8,12 +8,7 @@ name = "mmtk_v8"
 # be careful - LTO is only allowed for certain crate types
 crate-type = ["cdylib"]
 
-[profile.dev]
-panic = "abort"
-opt-level = 3
-
 [profile.release]
-panic = "abort"
 lto = true
 
 [dependencies]

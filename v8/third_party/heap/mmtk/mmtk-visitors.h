@@ -133,7 +133,7 @@ class MMTkEdgeVisitor: public i::HeapVisitor<void, MMTkEdgeVisitor> {
   virtual ~MMTkEdgeVisitor() {
     if (cursor_ > 0) flush();
     if (buffer_ != NULL) {
-      release_buffer(buffer_, cursor_, cap_);
+      mmtk_release_buffer(buffer_, cursor_, cap_);
     }
   }
 

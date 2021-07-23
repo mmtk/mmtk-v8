@@ -15,11 +15,13 @@ use V8_Upcalls;
 use UPCALLS;
 use V8;
 
+/// Release an address buffer
 #[no_mangle]
-pub unsafe extern "C" fn release_buffer(ptr: *mut Address, length: usize, capacity: usize) {
+pub unsafe extern "C" fn mmtk_release_buffer(ptr: *mut Address, length: usize, capacity: usize) {
     let _vec = Vec::<Address>::from_raw_parts(ptr, length, capacity);
 }
 
+/// Check whether an object is movable.
 #[no_mangle]
 pub unsafe extern "C" fn mmtk_is_movable(object: ObjectReference) -> i32 {
     let object = {
@@ -29,6 +31,7 @@ pub unsafe extern "C" fn mmtk_is_movable(object: ObjectReference) -> i32 {
     if object.is_movable() { 1 } else { 0 }
 }
 
+/// Get the forwarding pointer, or NULL if the object is not forwarded
 #[no_mangle]
 pub unsafe extern "C" fn mmtk_get_forwarded_object(object: ObjectReference) -> *mut c_void {
     let tag = object.to_address().as_usize() & 0b11usize;

@@ -81,8 +81,8 @@ pub extern "C" fn start_worker(
 }
 
 #[no_mangle]
-pub extern "C" fn enable_collection(mmtk: &'static mut MMTK<V8>, tls: VMThread) {
-    memory_manager::enable_collection(mmtk, tls);
+pub extern "C" fn initialize_collection(mmtk: &'static mut MMTK<V8>, tls: VMThread) {
+    memory_manager::initialize_collection(mmtk, tls);
 }
 
 #[no_mangle]

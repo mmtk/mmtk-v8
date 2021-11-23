@@ -1,11 +1,10 @@
 use std::sync::atomic::Ordering;
 
 use super::UPCALLS;
+use mmtk::util::copy::*;
 use mmtk::util::metadata::header_metadata::HeaderMetadataSpec;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::*;
-use mmtk::AllocationSemantics;
-use mmtk::CopyContext;
 use V8;
 
 pub struct VMObjectModel {}
@@ -72,8 +71,8 @@ impl ObjectModel<V8> for VMObjectModel {
 
     fn copy(
         _from: ObjectReference,
-        _allocator: AllocationSemantics,
-        _copy_context: &mut impl CopyContext,
+        _allocator: CopySemantics,
+        _copy_context: &mut GCWorkerCopyContext<V8>,
     ) -> ObjectReference {
         unimplemented!()
     }

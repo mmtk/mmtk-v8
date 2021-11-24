@@ -49,4 +49,8 @@ impl Scanning<V8> for VMScanning {
     fn supports_return_barrier() -> bool {
         unimplemented!()
     }
+
+    fn prepare_for_roots_re_scanning() {
+        unimplemented!()
+    }
 }

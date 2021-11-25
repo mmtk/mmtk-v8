@@ -49,7 +49,7 @@ pub extern "C" fn v8_new_heap(calls: *const V8_Upcalls, heap_size: usize) -> *mu
     };
     let mmtk: *const MMTK<V8> = &*crate::SINGLETON;
     memory_manager::gc_init(unsafe { &mut *(mmtk as *mut MMTK<V8>) }, heap_size);
-    enable_collection(unsafe { &mut *(mmtk as *mut MMTK<V8>) }, VMThread::UNINITIALIZED);
+    initialize_collection(unsafe { &mut *(mmtk as *mut MMTK<V8>) }, VMThread::UNINITIALIZED);
 
     mmtk as *mut c_void
 }

@@ -27,5 +27,5 @@ mmtk = { git = "https://github.com/mmtk/mmtk-core.git", rev = "8e50e2c3fa8b45f7e
 # mmtk = { path = "../repos/mmtk-core" }
 
 [features]
-default = ["mmtk/code_space", "mmtk/ro_space", "mmtk/nogc_common_plan"]
+default = ["mmtk/code_space", "mmtk/ro_space"]
 nogc = []

@@ -1,11 +1,16 @@
 use mmtk::scheduler::GCWorker;
+use mmtk::util::*;
 use mmtk::scheduler::ProcessEdgesWork;
-use mmtk::util::opaque_pointer::*;
 use mmtk::vm::Collection;
-use mmtk::MutatorContext;
+use mmtk::{MutatorContext, MMTK};
 
 use UPCALLS;
 use V8;
+
+use crate::object_archive::global_object_archive;
+use crate::scanning::ROOT_OBJECTS;
+use crate::scanning::flush_roots;
+use crate::scanning::trace_root;
 
 pub struct VMCollection {}
 
@@ -28,15 +33,20 @@ impl Collection<V8> for VMCollection {
         }
     }
 
-    fn spawn_worker_thread(tls: VMThread, ctx: Option<&GCWorker<V8>>) {
+    fn spawn_worker_thread(_tls: VMThread, ctx: Option<&GCWorker<V8>>) {
         let ctx_ptr = if let Some(r) = ctx {
             r as *const GCWorker<V8> as *mut GCWorker<V8>
         } else {
             std::ptr::null_mut()
-        };
-        unsafe {
-            ((*UPCALLS).spawn_worker_thread)(tls, ctx_ptr as usize as _);
-        }
+        } as usize;
+        std::thread::spawn(move || {
+            let mmtk: *mut MMTK<V8> = &*crate::SINGLETON as *const MMTK<V8> as *mut MMTK<V8>;
+            if ctx_ptr == 0 {
+                crate::api::start_control_collector(unsafe { &mut *mmtk }, VMWorkerThread(VMThread::UNINITIALIZED));
+            } else {
+                crate::api::start_worker(unsafe { &mut *mmtk }, VMWorkerThread(VMThread::UNINITIALIZED), unsafe { &mut *(ctx_ptr as *mut GCWorker<V8>) });
+            }
+        });
     }
 
     fn prepare_mutator<T: MutatorContext<V8>>(
@@ -45,5 +55,20 @@ impl Collection<V8> for VMCollection {
         _m: &T,
     ) {
         unimplemented!()
+    }
+
+    fn vm_release() {
+        global_object_archive().update();
+    }
+
+    fn process_weak_refs<E: ProcessEdgesWork<VM = V8>>(worker: &mut GCWorker<V8>) {
+        unsafe {
+            debug_assert!(ROOT_OBJECTS.is_empty());
+            ((*UPCALLS).process_weak_refs)(trace_root::<E> as _, worker as *mut _ as _);
+            if !ROOT_OBJECTS.is_empty() {
+                flush_roots::<E>(worker);
+            }
+            debug_assert!(ROOT_OBJECTS.is_empty());
+        }
     }
 }

@@ -90,6 +90,18 @@ impl ObjectModel<V8> for VMObjectModel {
         unimplemented!()
     }
 
+    fn get_size_when_copied(_object: ObjectReference) -> usize {
+        unimplemented!()
+    }
+
+    fn get_align_when_copied(_object: ObjectReference) -> usize {
+        unimplemented!()
+    }
+
+    fn get_align_offset_when_copied(_object: ObjectReference) -> isize {
+        unimplemented!()
+    }
+
     fn get_type_descriptor(_reference: ObjectReference) -> &'static [i8] {
         unimplemented!()
     }

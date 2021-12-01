@@ -121,9 +121,8 @@ AllocationResult Heap::Allocate(size_t size_in_bytes, AllocationType type, Alloc
   bool large_object = size_in_bytes > kMaxRegularHeapObjectSize;
   size_t align_bytes = (type == AllocationType::kCode) ? kCodeAlignment : (align == kWordAligned) ? kSystemPointerSize : (align == kDoubleAligned) ? kDoubleSize : kSystemPointerSize;
   // Get MMTk space that the object should be allocated to.
-  int space = (type == AllocationType::kCode) ? 3 : (type == AllocationType::kReadOnly) ? 4 : (large_object) ? 2 : 0;
   Address result =
-      reinterpret_cast<Address>(alloc(tph_mutator_, size_in_bytes, align_bytes, 0, space));
+      reinterpret_cast<Address>(alloc(tph_mutator_, size_in_bytes, align_bytes, 0, 0));
   // Remember the V8 internal `AllocationSpace` for this object.
   // This is required to pass various V8 internal space checks.
   // TODO(wenyuzhao): Use MMTk's vm-specific spaces for allocation instead of remembering the `AllocationSpace`s.

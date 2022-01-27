@@ -28,9 +28,9 @@ impl Collection<V8> for VMCollection {
         }
     }
 
-    fn spawn_worker_thread(tls: VMThread, ctx: Option<&GCWorker<V8>>) {
+    fn spawn_worker_thread(tls: VMThread, ctx: Option<Box<GCWorker<V8>>>) {
         let ctx_ptr = if let Some(r) = ctx {
-            r as *const GCWorker<V8> as *mut GCWorker<V8>
+            Box::into_raw(r)
         } else {
             std::ptr::null_mut()
         };

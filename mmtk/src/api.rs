@@ -75,9 +75,10 @@ pub extern "C" fn will_never_move(object: ObjectReference) -> bool {
 pub extern "C" fn start_worker(
     mmtk: &'static mut MMTK<V8>,
     tls: VMWorkerThread,
-    worker: &'static mut GCWorker<V8>,
+    worker: *mut GCWorker<V8>,
 ) {
-    memory_manager::start_worker::<V8>(tls, worker, mmtk);
+    let mut worker = unsafe { Box::from_raw(worker) };
+    memory_manager::start_worker::<V8>(tls, &mut worker, mmtk);
 }
 
 #[no_mangle]

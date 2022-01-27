@@ -72,6 +72,8 @@ pub extern "C" fn will_never_move(object: ObjectReference) -> bool {
 }
 
 #[no_mangle]
+// We trust the worker pointer is valid.
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn start_worker(
     mmtk: &'static mut MMTK<V8>,
     tls: VMWorkerThread,

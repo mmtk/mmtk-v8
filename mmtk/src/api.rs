@@ -1,7 +1,7 @@
 use libc::c_char;
 use libc::c_void;
 use mmtk::memory_manager;
-use mmtk::scheduler::GCWorker;
+use mmtk::scheduler::{GCController, GCWorker};
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::AllocationSemantics;
@@ -23,11 +23,6 @@ pub extern "C" fn v8_new_heap(calls: *const V8_Upcalls, heap_size: usize) -> *mu
     memory_manager::gc_init(unsafe { &mut *mmtk }, heap_size);
 
     mmtk as *mut c_void
-}
-
-#[no_mangle]
-pub extern "C" fn start_control_collector(mmtk: &mut MMTK<V8>, tls: VMWorkerThread) {
-    memory_manager::start_control_collector(&*mmtk, tls);
 }
 
 #[no_mangle]
@@ -74,13 +69,25 @@ pub extern "C" fn will_never_move(object: ObjectReference) -> bool {
 #[no_mangle]
 // We trust the worker pointer is valid.
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
+pub extern "C" fn start_control_collector(
+    mmtk: &'static mut MMTK<V8>,
+    tls: VMWorkerThread,
+    gc_controller: *mut GCController<V8>,
+) {
+    let mut gc_controller = unsafe { Box::from_raw(gc_controller) };
+    memory_manager::start_control_collector(&*mmtk, tls, &mut gc_controller);
+}
+
+#[no_mangle]
+// We trust the worker pointer is valid.
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn start_worker(
     mmtk: &'static mut MMTK<V8>,
     tls: VMWorkerThread,
     worker: *mut GCWorker<V8>,
 ) {
     let mut worker = unsafe { Box::from_raw(worker) };
-    memory_manager::start_worker::<V8>(tls, &mut worker, mmtk);
+    memory_manager::start_worker::<V8>(mmtk, tls, &mut worker);
 }
 
 #[no_mangle]

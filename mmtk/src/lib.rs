@@ -9,7 +9,6 @@ extern crate log;
 use std::ptr::null_mut;
 
 use libc::c_void;
-use mmtk::scheduler::GCWorker;
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::ObjectReference;
 use mmtk::vm::VMBinding;
@@ -27,7 +26,7 @@ pub mod scanning;
 pub struct V8_Upcalls {
     pub stop_all_mutators: extern "C" fn(tls: VMWorkerThread),
     pub resume_mutators: extern "C" fn(tls: VMWorkerThread),
-    pub spawn_worker_thread: extern "C" fn(tls: VMThread, ctx: *mut GCWorker<V8>),
+    pub spawn_gc_thread: extern "C" fn(tls: VMThread, kind: libc::c_int, ctx: *mut libc::c_void),
     pub block_for_gc: extern "C" fn(),
     pub get_next_mutator: extern "C" fn() -> *mut Mutator<V8>,
     pub reset_mutator_iterator: extern "C" fn(),

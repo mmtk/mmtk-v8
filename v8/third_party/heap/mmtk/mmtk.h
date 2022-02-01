@@ -53,7 +53,7 @@ extern bool process(void* mmtk, char* name, char* value);
 extern void scan_region(void *mmtk);
 extern void handle_user_collection_request(void *mmtk, void *tls);
 
-extern void start_control_collector(void *tls);
+extern void start_control_collector(void *tls, void* controller);
 extern void start_worker(void *tls, void* worker);
 
 /**
@@ -73,7 +73,7 @@ extern uint8_t  tph_archive_obj_to_space(void* arch, void* obj_ptr);
 typedef struct {
     void (*stop_all_mutators) (void *tls);
     void (*resume_mutators) (void *tls);
-    void (*spawn_collector_thread) (void *tls, void *ctx);
+    void (*spawn_collector_thread) (void *tls, int, void *ctx);
     void (*block_for_gc) ();
     void* (*get_next_mutator) ();
     void (*reset_mutator_iterator) ();

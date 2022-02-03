@@ -14,7 +14,7 @@ static void mmtk_resume_mutators(void *tls) {
     UNIMPLEMENTED();
 }
 
-static void mmtk_spawn_collector_thread(void* tls, void* ctx) {
+static void mmtk_spawn_collector_thread(void* tls, int kind, void* ctx) {
     UNIMPLEMENTED();
 }
 

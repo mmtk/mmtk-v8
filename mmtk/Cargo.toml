@@ -1,6 +1,6 @@
 [package]
 name = "mmtk_v8"
-version = "0.9.0"
+version = "0.10.0"
 authors = [" <>"]
 
 [lib]
@@ -22,7 +22,7 @@ log = "*"
 # - change branch
 # - change repo name
 # But other changes including adding/removing whitespaces in commented lines may break the CI.
-mmtk = { git = "https://github.com/mmtk/mmtk-core.git", rev = "29afb0c2fc8896db95e967062a892d39589bae4d" }
+mmtk = { git = "https://github.com/mmtk/mmtk-core.git", rev = "39ff4042b3f3851c25b915f9b4e728d75b9d3ba0" }
 # Uncomment the following and fix the path to mmtk-core to build locally
 # mmtk = { path = "../repos/mmtk-core" }
 

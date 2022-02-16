@@ -11,6 +11,10 @@ crate-type = ["cdylib"]
 [profile.release]
 lto = true
 
+[package.metadata.v8]
+v8_version = "191b637f28c0e2c6ca5f2d6ac89377039a754337"
+depot_tools_version = "b674278ce71b2ee683b8b0c98c9a64152988ecdb"
+
 [dependencies]
 libc = "0.2"
 lazy_static = "1.1"

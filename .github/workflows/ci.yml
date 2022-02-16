@@ -8,37 +8,13 @@ on:
 
 jobs:
   test:
-    runs-on: [self-hosted, linux]
-    if: contains(github.event.pull_request.labels.*.name, 'PR-approved')
-    steps:
-      # Checkout repos and submodules
-      - uses: actions/checkout@v2
-        with:
-          # CI_ACCESS_TOKEN is a secret set with the repo
-          token: ${{ secrets.CI_ACCESS_TOKEN }}
-          submodules: true
+    uses: ./.github/workflows/tests.yml
+    with:
+      test_v8: true
+      binding_ref: ${{ github.sha }}
 
-      - name: Set env vars
-        run: |
-          echo "RUSTUP_TOOLCHAIN=`cat mmtk/rust-toolchain`" >> $GITHUB_ENV
-          echo "V8_ROOT=$GITHUB_WORKSPACE/v8_deps" >> $GITHUB_ENV
-      - name: Setup Environments
-        run: ./.github/scripts/ci-setup.sh
-
-      # Be aware that any changes made to the following steps should be made to ci-test.sh as well.
-      # MMTk core tests the V8 binding by invoking ci-test.sh.
-
-      - name: Build MMTk NoGC
-        run: ./.github/scripts/build-mmtk.sh
-
-      - name: Style check Rust
-        run: ./.github/scripts/ci-style.sh
-
-      - name: Get V8 Sources
-        run: ./.github/scripts/get-v8.sh
-
-      - name: Build V8 with MMTk
-        run: ./.github/scripts/build-v8.sh
-
-      - name: Run V8 Tests
-        run: ./.github/scripts/test-v8.sh
+  style_check:
+    uses: ./.github/workflows/tests.yml
+    with:
+      style_check: true
+      binding_ref: ${{ github.sha }}

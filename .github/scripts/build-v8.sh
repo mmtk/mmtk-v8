@@ -1,7 +1,5 @@
 set -xe
 
-. $(dirname "$0")/common.sh
-
 # change to the V8 directory
 cd $V8_ROOT/v8
 
@@ -11,7 +9,7 @@ export PATH=$V8_ROOT/depot_tools:$PATH
 # generate the default setup and copy mmtk-v8's required arguments
 mkdir -p out/x64.optdebug-mmtk
 # copy the args
-cp $THE_ROOT/.github/scripts/args-optdebug.gn out/x64.optdebug-mmtk/args.gn
+cp $BINDING_PATH/.github/scripts/args-optdebug.gn out/x64.optdebug-mmtk/args.gn
 # generate files according to the copied args file
 gn gen out/x64.optdebug-mmtk
 # build our V8 setup, named optdebug-mmtk

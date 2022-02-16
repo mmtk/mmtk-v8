@@ -11,7 +11,7 @@ on:
         default: false
       style_check:
         type: boolean
-        defautl: false
+        default: false
       binding_ref:
         type: string
         required: true

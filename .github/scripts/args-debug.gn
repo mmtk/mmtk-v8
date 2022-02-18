@@ -2,7 +2,7 @@
 # See "gn args <out_dir> --list" for available build arguments.
 #
 declare_args() {
-    the_root = getenv("BINDING_PATH")
+    the_root = getenv("THE_ROOT")
 }
 
 is_component_build = true

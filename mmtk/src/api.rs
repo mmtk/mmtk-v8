@@ -118,17 +118,17 @@ pub extern "C" fn scan_region(mmtk: &mut MMTK<V8>) {
 
 #[no_mangle]
 pub extern "C" fn is_live_object(object: ObjectReference) -> bool {
-    object.is_live()
+    memory_manager::is_live_object(object)
 }
 
 #[no_mangle]
-pub extern "C" fn is_mapped_object(object: ObjectReference) -> bool {
-    object.is_mapped()
+pub extern "C" fn is_in_mmtk_spaces(object: ObjectReference) -> bool {
+    memory_manager::is_in_mmtk_spaces(object)
 }
 
 #[no_mangle]
 pub extern "C" fn is_mapped_address(address: Address) -> bool {
-    address.is_mapped()
+    memory_manager::is_mapped_address(address)
 }
 
 #[no_mangle]

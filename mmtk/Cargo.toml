@@ -11,6 +11,10 @@ crate-type = ["cdylib"]
 [profile.release]
 lto = true
 
+[package.metadata.v8]
+v8_version = "191b637f28c0e2c6ca5f2d6ac89377039a754337"
+depot_tools_version = "b674278ce71b2ee683b8b0c98c9a64152988ecdb"
+
 [dependencies]
 libc = "0.2"
 lazy_static = "1.1"
@@ -22,7 +26,7 @@ log = "*"
 # - change branch
 # - change repo name
 # But other changes including adding/removing whitespaces in commented lines may break the CI.
-mmtk = { git = "https://github.com/mmtk/mmtk-core.git", rev = "42262c296e164b5b1d05103e527ce5a9aee7cfd2" }
+mmtk = { git = "https://github.com/mmtk/mmtk-core.git", rev = "dbd152b29ff54c3f028318e73ac182d681deda9a" }
 # Uncomment the following and fix the path to mmtk-core to build locally
 # mmtk = { path = "../repos/mmtk-core" }
 

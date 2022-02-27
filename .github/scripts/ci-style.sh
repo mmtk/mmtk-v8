@@ -1,9 +1,10 @@
-project_root=$(dirname "$0")/../..
 set -xe
+
+. $(dirname "$0")/common.sh
 
 export RUSTFLAGS="-D warnings"
 
-cd $project_root/mmtk
+cd $THE_ROOT/mmtk
 cargo clippy
 cargo clippy --release
 cargo fmt -- --check

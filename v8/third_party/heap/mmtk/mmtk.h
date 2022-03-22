@@ -35,7 +35,7 @@ extern void post_alloc(MMTk_Mutator mutator, void* refer,
     int bytes, int allocator);
 
 extern bool is_live_object(void* ref);
-extern bool is_mapped_object(void* ref);
+extern bool is_in_mmtk_spaces(void* ref);
 extern bool is_mapped_address(void* addr);
 extern void modify_check(void *mmtk, void* ref);
 extern bool is_in_read_only_space(void* addr);

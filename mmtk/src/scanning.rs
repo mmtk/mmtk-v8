@@ -1,4 +1,3 @@
-use mmtk::scheduler::GCWorker;
 use mmtk::scheduler::ProcessEdgesWork;
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::ObjectReference;
@@ -14,21 +13,14 @@ impl Scanning<V8> for VMScanning {
     const SINGLE_THREAD_MUTATOR_SCANNING: bool = false;
 
     fn scan_object<EV: EdgeVisitor>(
-        _edge_visitor: &mut EV,
-        _object: ObjectReference,
         _tls: VMWorkerThread,
+        _object: ObjectReference,
+        _edge_visitor: &mut EV,
     ) {
         unimplemented!()
     }
 
     fn notify_initial_thread_scan_complete(_partial_scan: bool, _tls: VMWorkerThread) {
-        unimplemented!()
-    }
-
-    fn scan_objects<W: ProcessEdgesWork<VM = V8>>(
-        _objects: &[ObjectReference],
-        _worker: &mut GCWorker<V8>,
-    ) {
         unimplemented!()
     }
 

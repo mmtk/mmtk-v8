@@ -17,7 +17,7 @@ MMTk/V8 currently only supports `linux-x86_64`.
 
 ### Before you continue
 
-The minimal supported Rust version for MMTk-V8 binding is 1.xx.0. Make sure your Rust version is higher than this. We test MMTk-V8
+The minimal supported Rust version for MMTk-V8 binding is 1.57.0. Make sure your Rust version is higher than this. We test MMTk-V8
 binding with Rust 1.59.0 (as specified in [`rust-toolchain`](mmtk/rust-toolchain)).
 
 ### Getting Sources (for MMTk and VM)

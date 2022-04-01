@@ -33,3 +33,22 @@ jobs:
 
       - name: Run V8 Tests
         run: ./.github/scripts/test-v8.sh
+
+  msrv:
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+      - name: Install cargo-msrv
+        run: cargo install cargo-msrv
+      # Verify the MSRV defined in Cargo.toml
+      - name: Verify MSRV
+        run: cargo msrv --path mmtk verify
+      # If the previous step fails, find MSRV
+      - name: Find MSRV
+        if: failure()
+        run: cargo msrv --path mmtk

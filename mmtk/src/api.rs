@@ -142,17 +142,26 @@ pub extern "C" fn handle_user_collection_request(mmtk: &mut MMTK<V8>, tls: VMMut
 }
 
 #[no_mangle]
-pub extern "C" fn add_weak_candidate(mmtk: &mut MMTK<V8>, reff: ObjectReference) {
+pub extern "C" fn add_weak_candidate(
+    mmtk: &mut MMTK<V8>,
+    reff: ObjectReference,
+) {
     memory_manager::add_weak_candidate(mmtk, reff);
 }
 
 #[no_mangle]
-pub extern "C" fn add_soft_candidate(mmtk: &mut MMTK<V8>, reff: ObjectReference) {
+pub extern "C" fn add_soft_candidate(
+    mmtk: &mut MMTK<V8>,
+    reff: ObjectReference,
+) {
     memory_manager::add_soft_candidate(mmtk, reff);
 }
 
 #[no_mangle]
-pub extern "C" fn add_phantom_candidate(mmtk: &mut MMTK<V8>, reff: ObjectReference) {
+pub extern "C" fn add_phantom_candidate(
+    mmtk: &mut MMTK<V8>,
+    reff: ObjectReference,
+) {
     memory_manager::add_phantom_candidate(mmtk, reff);
 }
 

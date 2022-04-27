@@ -1,9 +1,9 @@
-use mmtk::scheduler::GCWorker;
 use mmtk::scheduler::ProcessEdgesWork;
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::ObjectReference;
+use mmtk::vm::EdgeVisitor;
 use mmtk::vm::Scanning;
-use mmtk::{Mutator, TransitiveClosure};
+use mmtk::Mutator;
 use V8;
 
 pub struct VMScanning {}
@@ -12,22 +12,15 @@ impl Scanning<V8> for VMScanning {
     const SCAN_MUTATORS_IN_SAFEPOINT: bool = false;
     const SINGLE_THREAD_MUTATOR_SCANNING: bool = false;
 
-    fn scan_object<T: TransitiveClosure>(
-        _trace: &mut T,
-        _object: ObjectReference,
+    fn scan_object<EV: EdgeVisitor>(
         _tls: VMWorkerThread,
+        _object: ObjectReference,
+        _edge_visitor: &mut EV,
     ) {
         unimplemented!()
     }
 
     fn notify_initial_thread_scan_complete(_partial_scan: bool, _tls: VMWorkerThread) {
-        unimplemented!()
-    }
-
-    fn scan_objects<W: ProcessEdgesWork<VM = V8>>(
-        _objects: &[ObjectReference],
-        _worker: &mut GCWorker<V8>,
-    ) {
         unimplemented!()
     }
 

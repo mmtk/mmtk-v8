@@ -1,4 +1,9 @@
-0.11.0 (2022-04-1)
+0.12.0 (2022-05-13)
+===
+
+* Updates to mmtk-core 0.12.0.
+
+0.11.0 (2022-04-01)
 ===
 
 * We now record the V8 version in `[package.metadata.v8]` in the Cargo manifest `Cargo.toml`.

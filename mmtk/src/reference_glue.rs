@@ -6,6 +6,8 @@ use V8;
 pub struct VMReferenceGlue {}
 
 impl ReferenceGlue<V8> for VMReferenceGlue {
+    type FinalizableType = ObjectReference;
+
     fn set_referent(_reff: ObjectReference, _referent: ObjectReference) {
         unimplemented!()
     }

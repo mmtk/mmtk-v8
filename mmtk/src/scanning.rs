@@ -1,7 +1,7 @@
-use mmtk::scheduler::ProcessEdgesWork;
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::ObjectReference;
 use mmtk::vm::EdgeVisitor;
+use mmtk::vm::RootsWorkFactory;
 use mmtk::vm::Scanning;
 use mmtk::Mutator;
 use V8;
@@ -24,18 +24,19 @@ impl Scanning<V8> for VMScanning {
         unimplemented!()
     }
 
-    fn scan_thread_roots<W: ProcessEdgesWork<VM = V8>>() {
+    fn scan_thread_roots(_tls: VMWorkerThread, _factory: Box<dyn RootsWorkFactory>) {
         unimplemented!()
     }
 
-    fn scan_thread_root<W: ProcessEdgesWork<VM = V8>>(
-        _mutator: &'static mut Mutator<V8>,
+    fn scan_thread_root(
         _tls: VMWorkerThread,
+        _mutator: &'static mut Mutator<V8>,
+        _factory: Box<dyn RootsWorkFactory>,
     ) {
         unimplemented!()
     }
 
-    fn scan_vm_specific_roots<W: ProcessEdgesWork<VM = V8>>() {
+    fn scan_vm_specific_roots(_tls: VMWorkerThread, _factory: Box<dyn RootsWorkFactory>) {
         unimplemented!()
     }
 

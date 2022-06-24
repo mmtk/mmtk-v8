@@ -24,19 +24,19 @@ impl Scanning<V8> for VMScanning {
         unimplemented!()
     }
 
-    fn scan_thread_roots(_tls: VMWorkerThread, _factory: Box<dyn RootsWorkFactory>) {
+    fn scan_thread_roots(_tls: VMWorkerThread, _factory: impl RootsWorkFactory) {
         unimplemented!()
     }
 
     fn scan_thread_root(
         _tls: VMWorkerThread,
         _mutator: &'static mut Mutator<V8>,
-        _factory: Box<dyn RootsWorkFactory>,
+        _factory: impl RootsWorkFactory,
     ) {
         unimplemented!()
     }
 
-    fn scan_vm_specific_roots(_tls: VMWorkerThread, _factory: Box<dyn RootsWorkFactory>) {
+    fn scan_vm_specific_roots(_tls: VMWorkerThread, _factory: impl RootsWorkFactory) {
         unimplemented!()
     }
 

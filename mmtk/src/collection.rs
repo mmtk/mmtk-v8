@@ -1,7 +1,6 @@
-use mmtk::scheduler::ProcessEdgesWork;
 use mmtk::util::opaque_pointer::*;
 use mmtk::vm::{Collection, GCThreadContext};
-use mmtk::MutatorContext;
+use mmtk::{Mutator, MutatorContext};
 
 use UPCALLS;
 use V8;
@@ -12,7 +11,10 @@ const GC_THREAD_KIND_WORKER: libc::c_int = 1;
 pub struct VMCollection {}
 
 impl Collection<V8> for VMCollection {
-    fn stop_all_mutators<E: ProcessEdgesWork<VM = V8>>(tls: VMWorkerThread) {
+    fn stop_all_mutators<F>(tls: VMWorkerThread, _mutator_visitor: F)
+    where
+        F: FnMut(&'static mut Mutator<V8>),
+    {
         unsafe {
             ((*UPCALLS).stop_all_mutators)(tls);
         }

@@ -7,22 +7,33 @@ use mmtk::util::{Address, ObjectReference};
 use mmtk::AllocationSemantics;
 use mmtk::Mutator;
 use mmtk::MMTK;
+use mmtk::MMTKBuilder;
 use std::ffi::CStr;
 
 use V8_Upcalls;
 use UPCALLS;
 use V8;
+use BUILDER;
+use SINGLETON;
 
 #[no_mangle]
 pub extern "C" fn v8_new_heap(calls: *const V8_Upcalls, heap_size: usize) -> *mut c_void {
     unsafe {
         UPCALLS = calls;
     };
-    let mmtk: Box<MMTK<V8>> = Box::new(MMTK::new());
-    let mmtk: *mut MMTK<V8> = Box::into_raw(mmtk);
-    memory_manager::gc_init(unsafe { &mut *mmtk }, heap_size);
 
-    mmtk as *mut c_void
+    #[cfg(feature = "nogc")]
+    memory_manager::process(&BUILDER, "plan", "NoGC");
+
+    memory_manager::process(&BUILDER, "heap_size", heap_size.to_string().as_str());
+
+    // Make sure that we haven't initialized MMTk (by accident) yet
+    assert!(!crate::MMTK_INITIALIZED.load(std::sync::atomic::Ordering::Relaxed));
+    // Make sure we initialize MMTk here
+    lazy_static::initialize(&SINGLETON);
+
+    let mmtk: &MMTK<V8> = &SINGLETON;
+    mmtk as *const MMTK<V8> as *mut c_void
 }
 
 #[no_mangle]
@@ -170,14 +181,14 @@ pub extern "C" fn harness_end(mmtk: &'static mut MMTK<V8>, _tls: OpaquePointer) 
 // We trust the name/value pointer is valid.
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn process(
-    mmtk: &'static mut MMTK<V8>,
+    builder: &MMTKBuilder,
     name: *const c_char,
     value: *const c_char,
 ) -> bool {
     let name_str: &CStr = unsafe { CStr::from_ptr(name) };
     let value_str: &CStr = unsafe { CStr::from_ptr(value) };
     let res = memory_manager::process(
-        mmtk,
+        builder,
         name_str.to_str().unwrap(),
         value_str.to_str().unwrap(),
     );

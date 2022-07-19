@@ -14,6 +14,7 @@ use mmtk::util::ObjectReference;
 use mmtk::vm::VMBinding;
 use mmtk::Mutator;
 use mmtk::MMTK;
+use mmtk::MMTKBuilder;
 pub mod active_plan;
 pub mod api;
 pub mod collection;
@@ -55,11 +56,17 @@ impl VMBinding for V8 {
     const MAX_ALIGNMENT: usize = 32;
 }
 
-lazy_static! {
-    pub static ref SINGLETON: MMTK<V8> = {
-        #[cfg(feature = "nogc")]
-        std::env::set_var("MMTK_PLAN", "NoGC");
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::Ordering;
 
-        MMTK::new()
+pub static MMTK_INITIALIZED: AtomicBool = AtomicBool::new(false);
+
+lazy_static! {
+    pub static ref BUILDER: MMTKBuilder = MMTKBuilder::new();
+    pub static ref SINGLETON: MMTK<V8> = {
+        assert!(!MMTK_INITIALIZED.load(Ordering::Relaxed));
+        let ret = mmtk::memory_manager::gc_init(&BUILDER);
+        MMTK_INITIALIZED.store(true, std::sync::atomic::Ordering::Relaxed);
+        *ret
     };
 }

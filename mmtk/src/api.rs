@@ -5,16 +5,16 @@ use mmtk::scheduler::{GCController, GCWorker};
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::AllocationSemantics;
+use mmtk::MMTKBuilder;
 use mmtk::Mutator;
 use mmtk::MMTK;
-use mmtk::MMTKBuilder;
 use std::ffi::CStr;
 
 use V8_Upcalls;
-use UPCALLS;
-use V8;
 use BUILDER;
 use SINGLETON;
+use UPCALLS;
+use V8;
 
 #[no_mangle]
 pub extern "C" fn v8_new_heap(calls: *const V8_Upcalls, heap_size: usize) -> *mut c_void {

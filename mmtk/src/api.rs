@@ -22,10 +22,22 @@ pub extern "C" fn v8_new_heap(calls: *const V8_Upcalls, heap_size: usize) -> *mu
         UPCALLS = calls;
     };
 
-    #[cfg(feature = "nogc")]
-    memory_manager::process(&BUILDER, "plan", "NoGC");
+    {
+        use mmtk::util::options::PlanSelector;
+        let mut builder = BUILDER.lock().unwrap();
+        // set heap size
+        let success = builder.options.heap_size.set(heap_size);
+        assert!(success, "Failed to set heap size to {}", heap_size);
 
-    memory_manager::process(&BUILDER, "heap_size", heap_size.to_string().as_str());
+        // set plan based on features
+        let plan = if cfg!(feature = "nogc") {
+            PlanSelector::NoGC
+        } else {
+            panic!("No plan feature is enabled for V8. V8 requiers one plan feature to build.")
+        };
+        let success = builder.options.plan.set(plan);
+        assert!(success, "Failed to set plan to {:?}", plan);
+    }
 
     // Make sure that we haven't initialized MMTk (by accident) yet
     assert!(!crate::MMTK_INITIALIZED.load(std::sync::atomic::Ordering::Relaxed));
@@ -181,7 +193,7 @@ pub extern "C" fn harness_end(mmtk: &'static mut MMTK<V8>, _tls: OpaquePointer) 
 // We trust the name/value pointer is valid.
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn process(
-    builder: &MMTKBuilder,
+    builder: &mut MMTKBuilder,
     name: *const c_char,
     value: *const c_char,
 ) -> bool {

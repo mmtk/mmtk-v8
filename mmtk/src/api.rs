@@ -5,11 +5,14 @@ use mmtk::scheduler::{GCController, GCWorker};
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::AllocationSemantics;
+use mmtk::MMTKBuilder;
 use mmtk::Mutator;
 use mmtk::MMTK;
 use std::ffi::CStr;
 
 use V8_Upcalls;
+use BUILDER;
+use SINGLETON;
 use UPCALLS;
 use V8;
 
@@ -18,11 +21,31 @@ pub extern "C" fn v8_new_heap(calls: *const V8_Upcalls, heap_size: usize) -> *mu
     unsafe {
         UPCALLS = calls;
     };
-    let mmtk: Box<MMTK<V8>> = Box::new(MMTK::new());
-    let mmtk: *mut MMTK<V8> = Box::into_raw(mmtk);
-    memory_manager::gc_init(unsafe { &mut *mmtk }, heap_size);
 
-    mmtk as *mut c_void
+    {
+        use mmtk::util::options::PlanSelector;
+        let mut builder = BUILDER.lock().unwrap();
+        // set heap size
+        let success = builder.options.heap_size.set(heap_size);
+        assert!(success, "Failed to set heap size to {}", heap_size);
+
+        // set plan based on features
+        let plan = if cfg!(feature = "nogc") {
+            PlanSelector::NoGC
+        } else {
+            panic!("No plan feature is enabled for V8. V8 requiers one plan feature to build.")
+        };
+        let success = builder.options.plan.set(plan);
+        assert!(success, "Failed to set plan to {:?}", plan);
+    }
+
+    // Make sure that we haven't initialized MMTk (by accident) yet
+    assert!(!crate::MMTK_INITIALIZED.load(std::sync::atomic::Ordering::Relaxed));
+    // Make sure we initialize MMTk here
+    lazy_static::initialize(&SINGLETON);
+
+    let mmtk: &MMTK<V8> = &SINGLETON;
+    mmtk as *const MMTK<V8> as *mut c_void
 }
 
 #[no_mangle]
@@ -170,14 +193,14 @@ pub extern "C" fn harness_end(mmtk: &'static mut MMTK<V8>, _tls: OpaquePointer) 
 // We trust the name/value pointer is valid.
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn process(
-    mmtk: &'static mut MMTK<V8>,
+    builder: &mut MMTKBuilder,
     name: *const c_char,
     value: *const c_char,
 ) -> bool {
     let name_str: &CStr = unsafe { CStr::from_ptr(name) };
     let value_str: &CStr = unsafe { CStr::from_ptr(value) };
     let res = memory_manager::process(
-        mmtk,
+        builder,
         name_str.to_str().unwrap(),
         value_str.to_str().unwrap(),
     );

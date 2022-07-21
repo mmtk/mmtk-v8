@@ -49,7 +49,7 @@ extern bool is_in_code_space(void* addr);
  * Misc
  */
 extern bool will_never_move(void* object);
-extern bool process(void* mmtk, char* name, char* value);
+extern bool process(void* builder, char* name, char* value);
 extern void scan_region(void *mmtk);
 extern void handle_user_collection_request(void *mmtk, void *tls);
 

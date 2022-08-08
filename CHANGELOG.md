@@ -1,3 +1,9 @@
+0.14.0 (2022-08-08)
+===
+
+* Include `Cargo.lock` in the repository.
+* Update to mmtk-core 0.14.0.
+
 0.13.0 (2022-06-27)
 ===
 

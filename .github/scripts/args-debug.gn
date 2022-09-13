@@ -15,6 +15,12 @@ v8_enable_fast_mksnapshot = true
 v8_enable_verify_csa = true
 v8_enable_slow_dchecks = false
 v8_optimized_debug = false
+# If we enable external code space, this error shows up.
+# ERROR at //BUILD.gn:560:1: Assertion failed.
+# assert(!v8_enable_external_code_space || v8_enable_pointer_compression,
+# ^-----
+# External code space feature requires pointer compression
+v8_enable_external_code_space = false
 
 v8_enable_third_party_heap = true
 v8_third_party_heap_files = [

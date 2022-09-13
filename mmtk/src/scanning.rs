@@ -5,6 +5,7 @@ use mmtk::vm::RootsWorkFactory;
 use mmtk::vm::Scanning;
 use mmtk::Mutator;
 use V8;
+use V8Edge;
 
 pub struct VMScanning {}
 
@@ -12,7 +13,7 @@ impl Scanning<V8> for VMScanning {
     const SCAN_MUTATORS_IN_SAFEPOINT: bool = false;
     const SINGLE_THREAD_MUTATOR_SCANNING: bool = false;
 
-    fn scan_object<EV: EdgeVisitor>(
+    fn scan_object<EV: EdgeVisitor<V8Edge>>(
         _tls: VMWorkerThread,
         _object: ObjectReference,
         _edge_visitor: &mut EV,
@@ -24,19 +25,19 @@ impl Scanning<V8> for VMScanning {
         unimplemented!()
     }
 
-    fn scan_thread_roots(_tls: VMWorkerThread, _factory: impl RootsWorkFactory) {
+    fn scan_thread_roots(_tls: VMWorkerThread, _factory: impl RootsWorkFactory<V8Edge>) {
         unimplemented!()
     }
 
     fn scan_thread_root(
         _tls: VMWorkerThread,
         _mutator: &'static mut Mutator<V8>,
-        _factory: impl RootsWorkFactory,
+        _factory: impl RootsWorkFactory<V8Edge>,
     ) {
         unimplemented!()
     }
 
-    fn scan_vm_specific_roots(_tls: VMWorkerThread, _factory: impl RootsWorkFactory) {
+    fn scan_vm_specific_roots(_tls: VMWorkerThread, _factory: impl RootsWorkFactory<V8Edge>) {
         unimplemented!()
     }
 

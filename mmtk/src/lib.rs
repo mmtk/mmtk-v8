@@ -10,6 +10,7 @@ use std::ptr::null_mut;
 
 use libc::c_void;
 use mmtk::util::opaque_pointer::*;
+use mmtk::util::Address;
 use mmtk::util::ObjectReference;
 use mmtk::vm::VMBinding;
 use mmtk::MMTKBuilder;
@@ -46,12 +47,20 @@ pub static mut UPCALLS: *const V8_Upcalls = null_mut();
 #[derive(Default)]
 pub struct V8;
 
+/// The edge type of V8.
+///
+/// TODO: We start with Address to transition from the old API.
+/// We should define an edge type suitable for V8.
+pub type V8Edge = Address;
+
 impl VMBinding for V8 {
     type VMObjectModel = object_model::VMObjectModel;
     type VMScanning = scanning::VMScanning;
     type VMCollection = collection::VMCollection;
     type VMActivePlan = active_plan::VMActivePlan;
     type VMReferenceGlue = reference_glue::VMReferenceGlue;
+
+    type VMEdge = V8Edge;
 
     const MAX_ALIGNMENT: usize = 32;
 }

@@ -1,8 +1,5 @@
-use std::sync::atomic::Ordering;
-
 use super::UPCALLS;
 use mmtk::util::copy::*;
-use mmtk::util::metadata::header_metadata::HeaderMetadataSpec;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::vm::*;
 use V8;
@@ -19,55 +16,6 @@ impl ObjectModel<V8> for VMObjectModel {
     const LOCAL_MARK_BIT_SPEC: VMLocalMarkBitSpec = VMLocalMarkBitSpec::in_header(0);
     const LOCAL_LOS_MARK_NURSERY_SPEC: VMLocalLOSMarkNurserySpec =
         VMLocalLOSMarkNurserySpec::in_header(0);
-
-    fn load_metadata(
-        _metadata_spec: &HeaderMetadataSpec,
-        _object: ObjectReference,
-        _mask: Option<usize>,
-        _atomic_ordering: Option<Ordering>,
-    ) -> usize {
-        unimplemented!()
-    }
-
-    fn store_metadata(
-        _metadata_spec: &HeaderMetadataSpec,
-        _object: ObjectReference,
-        _val: usize,
-        _mask: Option<usize>,
-        _atomic_ordering: Option<Ordering>,
-    ) {
-        unimplemented!()
-    }
-
-    fn compare_exchange_metadata(
-        _metadata_spec: &HeaderMetadataSpec,
-        _object: ObjectReference,
-        _old_val: usize,
-        _new_val: usize,
-        _mask: Option<usize>,
-        _success_order: Ordering,
-        _failure_order: Ordering,
-    ) -> bool {
-        unimplemented!()
-    }
-
-    fn fetch_add_metadata(
-        _metadata_spec: &HeaderMetadataSpec,
-        _object: ObjectReference,
-        _val: usize,
-        _order: Ordering,
-    ) -> usize {
-        unimplemented!()
-    }
-
-    fn fetch_sub_metadata(
-        _metadata_spec: &HeaderMetadataSpec,
-        _object: ObjectReference,
-        _val: usize,
-        _order: Ordering,
-    ) -> usize {
-        unimplemented!()
-    }
 
     fn copy(
         _from: ObjectReference,

@@ -61,6 +61,7 @@ impl VMBinding for V8 {
     type VMReferenceGlue = reference_glue::VMReferenceGlue;
 
     type VMEdge = V8Edge;
+    type VMMemorySlice = mmtk::vm::edge_shape::UnimplementedMemorySlice<V8Edge>;
 
     const MAX_ALIGNMENT: usize = 32;
 }

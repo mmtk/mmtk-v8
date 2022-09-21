@@ -23,4 +23,4 @@ v8_third_party_heap_files = [
     "$the_root/v8/third_party/heap/mmtk/mmtkUpcalls.h",
     "$the_root/v8/third_party/heap/mmtk/mmtkUpcalls.cc"
 ]
-v8_third_party_heap_libs = [ "$the_root/mmtk/target/debug/libmmtk_v8.so" ]
+v8_third_party_heap_libs = [ "$the_root/mmtk/target/x86_64-unknown-linux-gnu/debug/libmmtk_v8.so" ]

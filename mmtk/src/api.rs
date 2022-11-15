@@ -146,7 +146,7 @@ pub extern "C" fn is_live_object(object: ObjectReference) -> bool {
 
 #[no_mangle]
 pub extern "C" fn is_in_mmtk_spaces(object: ObjectReference) -> bool {
-    memory_manager::is_in_mmtk_spaces(object)
+    memory_manager::is_in_mmtk_spaces::<V8>(object)
 }
 
 #[no_mangle]

@@ -53,17 +53,25 @@ impl ObjectModel<V8> for VMObjectModel {
         unimplemented!()
     }
 
-    fn object_start_ref(object: ObjectReference) -> Address {
-        object.to_address()
+    fn ref_to_object_start(object: ObjectReference) -> Address {
+        object.to_raw_address()
+    }
+
+    fn ref_to_header(object: ObjectReference) -> Address {
+        object.to_raw_address()
+    }
+
+    fn ref_to_address(object: ObjectReference) -> Address {
+        object.to_raw_address()
+    }
+
+    fn address_to_ref(address: Address) -> ObjectReference {
+        ObjectReference::from_raw_address(address)
     }
 
     fn dump_object(object: ObjectReference) {
         unsafe {
             ((*UPCALLS).dump_object)(object);
         }
-    }
-
-    fn ref_to_address(_object: ObjectReference) -> Address {
-        unimplemented!()
     }
 }

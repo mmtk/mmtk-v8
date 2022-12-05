@@ -60,7 +60,9 @@ pub extern "C" fn bind_mutator(
 // It is fine we turn the pointer back to box, as we turned a boxed value to the raw pointer in bind_mutator()
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn destroy_mutator(mutator: *mut Mutator<V8>) {
-    memory_manager::destroy_mutator(unsafe { Box::from_raw(mutator) })
+    // Turn this back to boxed mutator, and let Rust reclaim it when it goes out of scope
+    let mut boxed_mutator = unsafe { Box::from_raw(mutator) };
+    memory_manager::destroy_mutator(&mut boxed_mutator);
 }
 
 #[no_mangle]

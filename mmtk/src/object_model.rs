@@ -53,6 +53,9 @@ impl ObjectModel<V8> for VMObjectModel {
         unimplemented!()
     }
 
+    const UNIFIED_OBJECT_REFERENCE_ADDRESS: bool = true;
+    const OBJECT_REF_OFFSET_LOWER_BOUND: isize = 0;
+
     fn ref_to_object_start(object: ObjectReference) -> Address {
         object.to_raw_address()
     }

@@ -26,7 +26,13 @@ pub extern "C" fn v8_new_heap(calls: *const V8_Upcalls, heap_size: usize) -> *mu
         use mmtk::util::options::PlanSelector;
         let mut builder = BUILDER.lock().unwrap();
         // set heap size
-        let success = builder.options.heap_size.set(heap_size);
+        let success =
+            builder
+                .options
+                .gc_trigger
+                .set(mmtk::util::options::GCTriggerSelector::FixedHeapSize(
+                    heap_size,
+                ));
         assert!(success, "Failed to set heap size to {}", heap_size);
 
         // set plan based on features

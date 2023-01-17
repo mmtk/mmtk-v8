@@ -119,7 +119,7 @@ AllocationResult Heap::Allocate(size_t size_in_bytes, AllocationType type, Alloc
   CheckMutator(this);
   TPHData* tph_data_ = get_tph_data(this);
   bool large_object = size_in_bytes > kMaxRegularHeapObjectSize;
-  size_t align_bytes = (type == AllocationType::kCode) ? kCodeAlignment : (align == kWordAligned) ? kSystemPointerSize : (align == kDoubleAligned) ? kDoubleSize : kSystemPointerSize;
+  size_t align_bytes = (type == AllocationType::kCode) ? kCodeAlignment : (align == kTaggedAligned) ? kTaggedSize : (align == kDoubleAligned) ? kDoubleSize : kSystemPointerSize;
   // Get MMTk space that the object should be allocated to.
   Address result =
       reinterpret_cast<Address>(alloc(tph_mutator_, size_in_bytes, align_bytes, 0, 0));
@@ -136,7 +136,7 @@ AllocationResult Heap::Allocate(size_t size_in_bytes, AllocationType type, Alloc
   }
   tph_archive_insert(tph_data_->archive(), reinterpret_cast<void*>(result), tph_data_->isolate(), uint8_t(allocation_space));
   HeapObject rtn = HeapObject::FromAddress(result);
-  return rtn;
+  return AllocationResult::FromObject(rtn);
 }
 
 Address Heap::GetObjectFromInnerPointer(Address inner_pointer) {
@@ -155,7 +155,7 @@ bool Heap::CollectGarbage() {
 }
 
 // Uninitialized space tag
-constexpr AllocationSpace kNoSpace = AllocationSpace(255);
+constexpr AllocationSpace kNoSpace = AllocationSpace(7);
 
 // Checks whether the address is *logically* in the allocation_space.
 // This does not related the real MMTk space that contains the address,
@@ -176,9 +176,21 @@ bool Heap::InOldSpace(Address address) {
   return InSpace(address, OLD_SPACE);
 }
 
+bool Heap::IsValidCodeObject(HeapObject object) {
+  return InSpace(object.address(), CODE_SPACE);
+}
 
-bool Heap::InCodeSpace(Address address) {
-  return InSpace(address, CODE_SPACE);
+bool Heap::IsImmovable(HeapObject object) {
+  // FIXME: we need to check with MMTK
+  return true;
+}
+
+// Check if the given object was recently allocated and its fields may appear
+// as uninitialized to background threads.
+bool Heap::IsPendingAllocation(HeapObject object) {
+  // Initializing fields should be the responsibility of the runtime.
+  // MMTk won't know that?
+  return false;
 }
 
 bool Heap::InReadOnlySpace(Address address) {

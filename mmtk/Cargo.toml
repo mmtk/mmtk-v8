@@ -13,7 +13,7 @@ crate-type = ["cdylib"]
 lto = true
 
 [package.metadata.v8]
-v8_version = "191b637f28c0e2c6ca5f2d6ac89377039a754337"
+v8_version = "bc0e7c8722b81d92fe3c2e35da5457c25574e07e"
 depot_tools_version = "b674278ce71b2ee683b8b0c98c9a64152988ecdb"
 
 [dependencies]

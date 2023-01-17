@@ -4,8 +4,8 @@ use mmtk::vm::EdgeVisitor;
 use mmtk::vm::RootsWorkFactory;
 use mmtk::vm::Scanning;
 use mmtk::Mutator;
-use V8;
 use V8Edge;
+use V8;
 
 pub struct VMScanning {}
 

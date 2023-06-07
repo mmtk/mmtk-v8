@@ -25,7 +25,10 @@ impl Scanning<V8> for VMScanning {
         unimplemented!()
     }
 
-    fn scan_roots_in_all_mutator_threads(_tls: VMWorkerThread, _factory: impl RootsWorkFactory<V8Edge>) {
+    fn scan_roots_in_all_mutator_threads(
+        _tls: VMWorkerThread,
+        _factory: impl RootsWorkFactory<V8Edge>
+    ) {
         unimplemented!()
     }
 

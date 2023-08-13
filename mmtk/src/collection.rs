@@ -1,6 +1,6 @@
 use mmtk::util::opaque_pointer::*;
 use mmtk::vm::{Collection, GCThreadContext};
-use mmtk::{Mutator, MutatorContext};
+use mmtk::Mutator;
 
 use UPCALLS;
 use V8;

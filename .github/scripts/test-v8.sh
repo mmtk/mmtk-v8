@@ -10,3 +10,5 @@ export PATH=$V8_ROOT/depot_tools:$PATH
 
 # run tests
 tools/dev/gm.py x64.optdebug-mmtk.checkall
+
+# Touch 1

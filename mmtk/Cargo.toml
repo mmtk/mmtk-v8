@@ -29,7 +29,7 @@ log = "*"
 # But other changes including adding/removing whitespaces in commented lines may break the CI.
 mmtk = { git = "https://github.com/mmtk/mmtk-core.git", rev = "04a47feb4598b2120598453c2cceec83986c2122" }
 # Uncomment the following and fix the path to mmtk-core to build locally
-# mmtk = { path = "../../mmtk-core" }
+# mmtk = { path = "../repos/mmtk-core" }
 
 [features]
 default = ["mmtk/code_space", "mmtk/ro_space"]

@@ -5,13 +5,11 @@ on:
     types: [opened, synchronize, reopened, labeled]
     branches:
       - master
-  push:
-    branches:
-      - fix-build-errors
 
 jobs:
   test:
     runs-on: ubuntu-20.04
+    if: contains(github.event.pull_request.labels.*.name, 'PR-approved')
     steps:
       # Checkout repos and submodules
       - uses: actions/checkout@v2

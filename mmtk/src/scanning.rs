@@ -10,9 +10,6 @@ use V8;
 pub struct VMScanning {}
 
 impl Scanning<V8> for VMScanning {
-    const SCAN_MUTATORS_IN_SAFEPOINT: bool = false;
-    const SINGLE_THREAD_MUTATOR_SCANNING: bool = false;
-
     fn scan_object<EV: EdgeVisitor<V8Edge>>(
         _tls: VMWorkerThread,
         _object: ObjectReference,
@@ -22,13 +19,6 @@ impl Scanning<V8> for VMScanning {
     }
 
     fn notify_initial_thread_scan_complete(_partial_scan: bool, _tls: VMWorkerThread) {
-        unimplemented!()
-    }
-
-    fn scan_roots_in_all_mutator_threads(
-        _tls: VMWorkerThread,
-        _factory: impl RootsWorkFactory<V8Edge>
-    ) {
         unimplemented!()
     }
 

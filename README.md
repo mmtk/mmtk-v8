@@ -161,7 +161,7 @@ v8_enable_single_generation = true
 v8_enable_shared_ro_heap = false
 v8_enable_pointer_compression = false
 v8_enable_third_party_heap = true
-v8_third_party_heap_files = [ "../mmtk-v8/v8/third_party/heap/mmtk/mmtk.cc", 
+v8_third_party_heap_files = [ "../mmtk-v8/v8/third_party/heap/mmtk/mmtk.cc",
 "../mmtk-v8/v8/third_party/heap/mmtk/mmtk.h",
 "../mmtk-v8/v8/third_party/heap/mmtk/mmtkUpcalls.h",
 "../mmtk-v8/v8/third_party/heap/mmtk/mmtkUpcalls.cc"]

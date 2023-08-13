@@ -46,12 +46,4 @@ impl Collection<V8> for VMCollection {
             ((*UPCALLS).spawn_gc_thread)(tls, kind, ctx_ptr);
         }
     }
-
-    fn prepare_mutator<T: MutatorContext<V8>>(
-        _tls_worker: VMWorkerThread,
-        _tls_mutator: VMMutatorThread,
-        _m: &T,
-    ) {
-        unimplemented!()
-    }
 }

@@ -25,22 +25,8 @@ impl ActivePlan<V8> for VMActivePlan {
         }
     }
 
-    fn reset_mutator_iterator() {
-        unsafe {
-            ((*UPCALLS).reset_mutator_iterator)();
-        }
-    }
-
-    fn get_next_mutator() -> Option<&'static mut Mutator<V8>> {
-        let _guard = MUTATOR_ITERATOR_LOCK.lock().unwrap();
-        unsafe {
-            let m = ((*UPCALLS).get_next_mutator)();
-            if m.is_null() {
-                None
-            } else {
-                Some(&mut *m)
-            }
-        }
+    fn mutators<'a>() -> Box<dyn Iterator<Item = &'a mut Mutator<V8>> + 'a> {
+        unimplemented!()
     }
 
     fn number_of_mutators() -> usize {

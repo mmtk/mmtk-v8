@@ -13,7 +13,7 @@ pub extern "C" fn tph_archive_new() -> *const c_void {
 #[no_mangle]
 pub extern "C" fn tph_archive_delete(arch: *mut c_void) {
     unsafe {
-        Box::from_raw(arch as *mut ObjectArchive);
+        let _unused = Box::from_raw(arch as *mut ObjectArchive);
     };
 }
 

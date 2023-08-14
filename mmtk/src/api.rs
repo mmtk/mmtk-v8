@@ -76,7 +76,7 @@ pub extern "C" fn alloc(
     mutator: &mut Mutator<V8>,
     size: usize,
     align: usize,
-    offset: isize,
+    offset: usize,
     semantics: AllocationSemantics,
 ) -> Address {
     memory_manager::alloc::<V8>(mutator, size, align, offset, semantics)

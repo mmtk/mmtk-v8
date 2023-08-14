@@ -1,6 +1,6 @@
 use mmtk::util::opaque_pointer::*;
 use mmtk::vm::{Collection, GCThreadContext};
-use mmtk::{Mutator, MutatorContext};
+use mmtk::Mutator;
 
 use UPCALLS;
 use V8;
@@ -45,13 +45,5 @@ impl Collection<V8> for VMCollection {
         unsafe {
             ((*UPCALLS).spawn_gc_thread)(tls, kind, ctx_ptr);
         }
-    }
-
-    fn prepare_mutator<T: MutatorContext<V8>>(
-        _tls_worker: VMWorkerThread,
-        _tls_mutator: VMMutatorThread,
-        _m: &T,
-    ) {
-        unimplemented!()
     }
 }

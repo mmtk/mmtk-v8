@@ -1,3 +1,14 @@
+0.19.0 (2023-08-18)
+===
+
+## What's Changed
+* Update to MMTk core PR #712 by @qinsoon in https://github.com/mmtk/mmtk-v8/pull/75
+* Rename ambiguous `scan_thread_root{,s}` functions by @k-sareen in https://github.com/mmtk/mmtk-v8/pull/77
+* Fix CI and cargo build errors by @wenyuzhao in https://github.com/mmtk/mmtk-v8/pull/78
+
+## New Contributors
+* @k-sareen made their first contribution in https://github.com/mmtk/mmtk-v8/pull/77
+
 0.16.0 (2022-12-06)
 ===
 

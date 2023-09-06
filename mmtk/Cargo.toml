@@ -2,7 +2,7 @@
 name = "mmtk_v8"
 version = "0.18.0"
 authors = [" <>"]
-rust-version = "1.71.1"
+rust-version = "1.70.0"
 
 [lib]
 name = "mmtk_v8"

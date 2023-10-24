@@ -163,11 +163,6 @@ pub extern "C" fn is_mapped_address(address: Address) -> bool {
 }
 
 #[no_mangle]
-pub extern "C" fn modify_check(mmtk: &mut MMTK<V8>, object: ObjectReference) {
-    memory_manager::modify_check(mmtk, object);
-}
-
-#[no_mangle]
 pub extern "C" fn handle_user_collection_request(mmtk: &mut MMTK<V8>, tls: VMMutatorThread) {
     memory_manager::handle_user_collection_request::<V8>(mmtk, tls);
 }

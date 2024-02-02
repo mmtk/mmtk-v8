@@ -52,7 +52,6 @@ extern bool process(void* builder, char* name, char* value);
 extern void scan_region(void *mmtk);
 extern void handle_user_collection_request(void *mmtk, void *tls);
 
-extern void start_control_collector(void *tls, void* controller);
 extern void start_worker(void *tls, void* worker);
 
 /**

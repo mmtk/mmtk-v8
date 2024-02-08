@@ -1,7 +1,7 @@
 use libc::c_char;
 use libc::c_void;
 use mmtk::memory_manager;
-use mmtk::scheduler::{GCController, GCWorker};
+use mmtk::scheduler::GCWorker;
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::{Address, ObjectReference};
 use mmtk::AllocationSemantics;
@@ -100,25 +100,13 @@ pub extern "C" fn will_never_move(object: ObjectReference) -> bool {
 #[no_mangle]
 // We trust the worker pointer is valid.
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
-pub extern "C" fn start_control_collector(
-    mmtk: &'static mut MMTK<V8>,
-    tls: VMWorkerThread,
-    gc_controller: *mut GCController<V8>,
-) {
-    let mut gc_controller = unsafe { Box::from_raw(gc_controller) };
-    memory_manager::start_control_collector(&*mmtk, tls, &mut gc_controller);
-}
-
-#[no_mangle]
-// We trust the worker pointer is valid.
-#[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn start_worker(
     mmtk: &'static mut MMTK<V8>,
     tls: VMWorkerThread,
     worker: *mut GCWorker<V8>,
 ) {
-    let mut worker = unsafe { Box::from_raw(worker) };
-    memory_manager::start_worker::<V8>(mmtk, tls, &mut worker);
+    let worker = unsafe { Box::from_raw(worker) };
+    memory_manager::start_worker::<V8>(mmtk, tls, worker);
 }
 
 #[no_mangle]

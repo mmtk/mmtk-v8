@@ -5,7 +5,6 @@ use mmtk::Mutator;
 use UPCALLS;
 use V8;
 
-const GC_THREAD_KIND_CONTROLLER: libc::c_int = 0;
 const GC_THREAD_KIND_WORKER: libc::c_int = 1;
 
 pub struct VMCollection {}
@@ -34,10 +33,6 @@ impl Collection<V8> for VMCollection {
 
     fn spawn_gc_thread(tls: VMThread, ctx: GCThreadContext<V8>) {
         let (ctx_ptr, kind) = match ctx {
-            GCThreadContext::Controller(b) => (
-                Box::into_raw(b) as *mut libc::c_void,
-                GC_THREAD_KIND_CONTROLLER,
-            ),
             GCThreadContext::Worker(b) => {
                 (Box::into_raw(b) as *mut libc::c_void, GC_THREAD_KIND_WORKER)
             }

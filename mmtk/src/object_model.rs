@@ -69,7 +69,8 @@ impl ObjectModel<V8> for VMObjectModel {
     }
 
     fn address_to_ref(address: Address) -> ObjectReference {
-        ObjectReference::from_raw_address(address)
+        debug_assert!(!address.is_zero());
+        unsafe { ObjectReference::from_raw_address_unchecked(address) }
     }
 
     fn dump_object(object: ObjectReference) {

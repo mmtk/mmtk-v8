@@ -11,10 +11,13 @@ impl ReferenceGlue<V8> for VMReferenceGlue {
     fn set_referent(_reff: ObjectReference, _referent: ObjectReference) {
         unimplemented!()
     }
-    fn get_referent(_object: ObjectReference) -> ObjectReference {
+    fn get_referent(_object: ObjectReference) -> Option<ObjectReference> {
         unimplemented!()
     }
     fn enqueue_references(_references: &[ObjectReference], _tls: VMWorkerThread) {
+        unimplemented!()
+    }
+    fn clear_referent(_new_reference: ObjectReference) {
         unimplemented!()
     }
 }

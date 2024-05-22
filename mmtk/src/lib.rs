@@ -51,7 +51,7 @@ pub struct V8;
 ///
 /// TODO: We start with Address to transition from the old API.
 /// We should define an edge type suitable for V8.
-pub type V8Edge = Address;
+pub type V8Slot = Address;
 
 impl VMBinding for V8 {
     type VMObjectModel = object_model::VMObjectModel;
@@ -60,8 +60,8 @@ impl VMBinding for V8 {
     type VMActivePlan = active_plan::VMActivePlan;
     type VMReferenceGlue = reference_glue::VMReferenceGlue;
 
-    type VMEdge = V8Edge;
-    type VMMemorySlice = mmtk::vm::edge_shape::UnimplementedMemorySlice<V8Edge>;
+    type VMSlot = V8Slot;
+    type VMMemorySlice = mmtk::vm::slot::UnimplementedMemorySlice<V8Slot>;
 
     const MAX_ALIGNMENT: usize = 32;
 }

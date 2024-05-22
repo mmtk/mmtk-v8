@@ -1,16 +1,16 @@
 use mmtk::util::opaque_pointer::*;
 use mmtk::util::ObjectReference;
-use mmtk::vm::EdgeVisitor;
 use mmtk::vm::RootsWorkFactory;
 use mmtk::vm::Scanning;
+use mmtk::vm::SlotVisitor;
 use mmtk::Mutator;
-use V8Edge;
+use V8Slot;
 use V8;
 
 pub struct VMScanning {}
 
 impl Scanning<V8> for VMScanning {
-    fn scan_object<EV: EdgeVisitor<V8Edge>>(
+    fn scan_object<EV: SlotVisitor<V8Slot>>(
         _tls: VMWorkerThread,
         _object: ObjectReference,
         _edge_visitor: &mut EV,
@@ -25,12 +25,12 @@ impl Scanning<V8> for VMScanning {
     fn scan_roots_in_mutator_thread(
         _tls: VMWorkerThread,
         _mutator: &'static mut Mutator<V8>,
-        _factory: impl RootsWorkFactory<V8Edge>,
+        _factory: impl RootsWorkFactory<V8Slot>,
     ) {
         unimplemented!()
     }
 
-    fn scan_vm_specific_roots(_tls: VMWorkerThread, _factory: impl RootsWorkFactory<V8Edge>) {
+    fn scan_vm_specific_roots(_tls: VMWorkerThread, _factory: impl RootsWorkFactory<V8Slot>) {
         unimplemented!()
     }
 

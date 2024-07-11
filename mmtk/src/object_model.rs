@@ -64,14 +64,7 @@ impl ObjectModel<V8> for VMObjectModel {
         object.to_raw_address()
     }
 
-    fn ref_to_address(object: ObjectReference) -> Address {
-        object.to_raw_address()
-    }
-
-    fn address_to_ref(address: Address) -> ObjectReference {
-        debug_assert!(!address.is_zero());
-        unsafe { ObjectReference::from_raw_address_unchecked(address) }
-    }
+    const IN_OBJECT_ADDRESS_OFFSET: isize = 0;
 
     fn dump_object(object: ObjectReference) {
         unsafe {

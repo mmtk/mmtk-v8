@@ -94,7 +94,7 @@ pub extern "C" fn post_alloc(
 
 #[no_mangle]
 pub extern "C" fn will_never_move(object: ObjectReference) -> bool {
-    !object.is_movable::<V8>()
+    !object.is_movable()
 }
 
 #[no_mangle]
@@ -137,12 +137,12 @@ pub extern "C" fn scan_region(mmtk: &mut MMTK<V8>) {
 
 #[no_mangle]
 pub extern "C" fn is_live_object(object: ObjectReference) -> bool {
-    memory_manager::is_live_object::<V8>(object)
+    memory_manager::is_live_object(object)
 }
 
 #[no_mangle]
 pub extern "C" fn is_in_mmtk_spaces(object: ObjectReference) -> bool {
-    memory_manager::is_in_mmtk_spaces::<V8>(object)
+    memory_manager::is_in_mmtk_spaces(object)
 }
 
 #[no_mangle]

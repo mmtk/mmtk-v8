@@ -130,12 +130,6 @@ pub extern "C" fn total_bytes(mmtk: &mut MMTK<V8>) -> usize {
 }
 
 #[no_mangle]
-#[cfg(feature = "sanity")]
-pub extern "C" fn scan_region(mmtk: &mut MMTK<V8>) {
-    memory_manager::scan_region(mmtk);
-}
-
-#[no_mangle]
 pub extern "C" fn is_live_object(object: ObjectReference) -> bool {
     memory_manager::is_live_object(object)
 }

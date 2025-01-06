@@ -17,19 +17,26 @@ pub extern "C" fn tph_archive_delete(arch: *mut c_void) {
     };
 }
 
+fn with_archive_raw_pointer<F, R>(arch: *mut c_void, f: F) -> R
+where
+    F: Fn(&mut ObjectArchive) -> R,
+{
+    let mut arch = unsafe { Box::from_raw(arch as *mut ObjectArchive) };
+    let res = f(&mut arch);
+    let _ = Box::into_raw(arch);
+    res
+}
+
 #[no_mangle]
 pub extern "C" fn tph_archive_iter_reset(arch: *mut c_void) {
-    let mut arch = unsafe { Box::from_raw(arch as *mut ObjectArchive) };
-    arch.reset_iterator();
-    Box::into_raw(arch);
+    with_archive_raw_pointer(arch, |arch| {
+        arch.reset_iterator();
+    })
 }
 
 #[no_mangle]
 pub extern "C" fn tph_archive_iter_next(arch: *mut c_void) -> *mut c_void {
-    let mut arch = unsafe { Box::from_raw(arch as *mut ObjectArchive) };
-    let res = arch.next_object();
-    Box::into_raw(arch);
-    res.to_mut_ptr()
+    with_archive_raw_pointer(arch, |arch| arch.next_object().to_mut_ptr())
 }
 
 #[no_mangle]
@@ -37,10 +44,10 @@ pub extern "C" fn tph_archive_inner_to_obj(
     arch: *mut c_void,
     inner_ptr: *mut c_void,
 ) -> *mut c_void {
-    let arch = unsafe { Box::from_raw(arch as *mut ObjectArchive) };
-    let res = arch.inner_addr_to_object(Address::from_mut_ptr(inner_ptr));
-    Box::into_raw(arch);
-    res.to_mut_ptr()
+    with_archive_raw_pointer(arch, |arch| {
+        arch.inner_addr_to_object(Address::from_mut_ptr(inner_ptr))
+            .to_mut_ptr()
+    })
 }
 
 #[no_mangle]
@@ -48,18 +55,17 @@ pub extern "C" fn tph_archive_obj_to_isolate(
     arch: *mut c_void,
     obj_ptr: *mut c_void,
 ) -> *mut c_void {
-    let arch = unsafe { Box::from_raw(arch as *mut ObjectArchive) };
-    let res = arch.object_to_isolate(Address::from_mut_ptr(obj_ptr));
-    Box::into_raw(arch);
-    res.to_mut_ptr()
+    with_archive_raw_pointer(arch, |arch| {
+        arch.object_to_isolate(Address::from_mut_ptr(obj_ptr))
+            .to_mut_ptr()
+    })
 }
 
 #[no_mangle]
 pub extern "C" fn tph_archive_obj_to_space(arch: *mut c_void, obj_ptr: *mut c_void) -> u8 {
-    let arch = unsafe { Box::from_raw(arch as *mut ObjectArchive) };
-    let res = arch.object_to_space(Address::from_mut_ptr(obj_ptr));
-    Box::into_raw(arch);
-    res
+    with_archive_raw_pointer(arch, |arch| {
+        arch.object_to_space(Address::from_mut_ptr(obj_ptr))
+    })
 }
 
 #[no_mangle]
@@ -69,19 +75,19 @@ pub extern "C" fn tph_archive_insert(
     iso_ptr: *mut c_void,
     space: u8,
 ) {
-    let obj_addr = Address::from_mut_ptr(obj_ptr);
-    let iso_addr = Address::from_mut_ptr(iso_ptr);
-    let mut arch = unsafe { Box::from_raw(arch as *mut ObjectArchive) };
-    arch.insert_object(obj_addr, iso_addr, space);
-    Box::into_raw(arch);
+    with_archive_raw_pointer(arch, |arch| {
+        let obj_addr = Address::from_mut_ptr(obj_ptr);
+        let iso_addr = Address::from_mut_ptr(iso_ptr);
+        arch.insert_object(obj_addr, iso_addr, space);
+    })
 }
 
 #[no_mangle]
 pub extern "C" fn tph_archive_remove(arch: *mut c_void, obj_ptr: *mut c_void) {
-    let obj_addr = Address::from_mut_ptr(obj_ptr);
-    let mut arch = unsafe { Box::from_raw(arch as *mut ObjectArchive) };
-    arch.remove_object(obj_addr);
-    Box::into_raw(arch);
+    with_archive_raw_pointer(arch, |arch| {
+        let obj_addr = Address::from_mut_ptr(obj_ptr);
+        arch.remove_object(obj_addr);
+    })
 }
 
 pub struct ObjectArchive {
